@@ -88,7 +88,12 @@ export class PayrollController {
   @ApiQuery({ name: 'year', required: true, example: 2026 })
   @ApiQuery({ name: 'month', required: true, example: 2 })
   async calculateSalary(@Request() req, @Query('year') year: number, @Query('month') month: number) {
-    return this.payrollService.calculateMonthlySalary(req.user.company_id, Number(year), Number(month));
+    try {
+      return await this.payrollService.calculateMonthlySalary(req.user.company_id, Number(year), Number(month));
+    } catch (error) {
+      console.error('Payroll calculation error:', error);
+      throw error;
+    }
   }
 
   // ============================================

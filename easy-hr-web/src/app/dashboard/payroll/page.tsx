@@ -29,10 +29,18 @@ export default function PayrollPage() {
     const ok = await confirm({ title: 'Calculate Payroll', message: `Calculate payroll for ${new Date(2024, month-1).toLocaleString('en', {month:'long'})} ${year}?`, confirmText: 'Calculate', variant: 'info' });
     if (!ok) return;
     try {
-      await calculatePayroll(year, month);
-      toast('Payroll calculated successfully!', 'success');
+      const res = await calculatePayroll(year, month);
+      const msg = res.data?.message || 'Payroll calculated!';
+      if (res.data?.results?.length === 0) {
+        toast(msg, 'warning');
+      } else {
+        toast(msg, 'success');
+      }
       loadPayroll();
-    } catch (e) { toast('Failed to calculate payroll', 'error'); }
+    } catch (e: any) {
+      const errMsg = e.response?.data?.message || e.message || 'Failed to calculate payroll';
+      toast(errMsg, 'error');
+    }
   };
 
   const records = payroll?.payrolls || payroll?.payroll || payroll?.records || [];

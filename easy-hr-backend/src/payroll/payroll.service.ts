@@ -213,24 +213,35 @@ export class PayrollService {
     const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
 
     // Calculate working days in month (exclude weekends)
-    const { data: company } = await db
-      .from('companies')
-      .select('working_days')
-      .eq('id', companyId)
-      .single();
+    let companyWorkingDays = [1, 2, 3, 4, 5]; // Mon-Fri default
+    try {
+      const { data: company } = await db
+        .from('companies')
+        .select('working_days')
+        .eq('id', companyId)
+        .single();
+      if (company?.working_days) companyWorkingDays = company.working_days;
+    } catch (e) {
+      // working_days column may not exist, use default
+    }
 
-    const workingDays = this.getWorkingDaysInMonth(year, month, company?.working_days || [1, 2, 3, 4, 5]);
+    const workingDays = this.getWorkingDaysInMonth(year, month, companyWorkingDays);
 
     // Get public holidays
-    const { data: holidays } = await db
-      .from('public_holidays')
-      .select('date')
-      .eq('company_id', companyId)
-      .gte('date', startDate)
-      .lte('date', endDate);
+    let holidayCount = 0;
+    try {
+      const { data: holidays } = await db
+        .from('public_holidays')
+        .select('date')
+        .eq('company_id', companyId)
+        .gte('date', startDate)
+        .lte('date', endDate);
+      holidayCount = holidays?.length || 0;
+    } catch (e) {
+      // public_holidays table may not exist
+    }
 
-    const holidayCount = holidays?.length || 0;
-    const totalWorkingDays = workingDays - holidayCount;
+    const totalWorkingDays = Math.max(1, workingDays - holidayCount);
 
     for (const structure of structures) {
       if (!structure.employee?.is_active) continue;
@@ -303,16 +314,22 @@ export class PayrollService {
       const taxAmount = this.calculateMyanmarTax(grossSalary * 12) / 12; // Monthly tax
 
       // Advance deduction
-      const { data: activeAdvances } = await db
-        .from('salary_advances')
-        .select('monthly_deduction, remaining_amount')
-        .eq('employee_id', empId)
-        .eq('status', 'approved')
-        .gt('remaining_amount', 0);
-
-      const advanceDeduction = activeAdvances?.reduce((sum, a) => {
-        return sum + Math.min(Number(a.monthly_deduction), Number(a.remaining_amount));
-      }, 0) || 0;
+      let advanceDeduction = 0;
+      let activeAdvances: any[] = [];
+      try {
+        const { data } = await db
+          .from('salary_advances')
+          .select('monthly_deduction, remaining_amount')
+          .eq('employee_id', empId)
+          .eq('status', 'approved')
+          .gt('remaining_amount', 0);
+        activeAdvances = data || [];
+        advanceDeduction = activeAdvances.reduce((sum, a) => {
+          return sum + Math.min(Number(a.monthly_deduction), Number(a.remaining_amount));
+        }, 0);
+      } catch (e) {
+        // salary_advances table may not exist
+      }
 
       const totalDeductions = ssbAmount + taxAmount + advanceDeduction;
       const netSalary = grossSalary - totalDeductions;
