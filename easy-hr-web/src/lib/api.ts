@@ -53,8 +53,8 @@ export const approveLeave = (id: string) => api.put(`/leave/${id}/approve`);
 export const rejectLeave = (id: string, reason: string) => api.put(`/leave/${id}/reject`, { rejection_reason: reason });
 
 // Payroll
-export const getMonthlyPayroll = (year: number, month: number) => api.get(`/payroll/monthly/${year}/${month}`);
-export const calculatePayroll = (year: number, month: number) => api.post(`/payroll/calculate/${year}/${month}`);
+export const getMonthlyPayroll = (year: number, month: number) => api.get('/payroll/monthly', { params: { year, month } });
+export const calculatePayroll = (year: number, month: number) => api.post('/payroll/calculate', null, { params: { year, month } });
 export const getSalaryStructures = () => api.get('/payroll/salary-structures');
 
 // Departments & Branches

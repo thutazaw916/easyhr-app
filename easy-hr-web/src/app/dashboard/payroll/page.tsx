@@ -35,7 +35,7 @@ export default function PayrollPage() {
     } catch (e) { toast('Failed to calculate payroll', 'error'); }
   };
 
-  const records = payroll?.payroll || payroll?.records || [];
+  const records = payroll?.payrolls || payroll?.payroll || payroll?.records || [];
   const formatMMK = (n: number) => n?.toLocaleString() || '0';
 
   return (
