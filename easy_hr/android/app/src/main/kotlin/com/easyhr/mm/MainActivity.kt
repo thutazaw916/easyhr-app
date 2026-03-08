@@ -1,4 +1,4 @@
-package com.example.easyhrapp
+package com.easyhr.mm
 
 import io.flutter.embedding.android.FlutterActivity
 

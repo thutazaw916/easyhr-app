@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -6,8 +9,15 @@ plugins {
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
-    namespace = "com.example.easyhrapp"
+    namespace = "com.easyhr.mm"
     compileSdk = 36
     ndkVersion = "27.0.12077973"
     compileOptions {
@@ -19,15 +29,26 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
     defaultConfig {
-        applicationId = "com.example.easyhrapp"
+        applicationId = "com.easyhr.mm"
         minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String? ?: "easyhr"
+            keyPassword = keystoreProperties["keyPassword"] as String? ?: ""
+            storeFile = file(keystoreProperties["storeFile"] as String? ?: "easyhr-release.jks")
+            storePassword = keystoreProperties["storePassword"] as String? ?: ""
+        }
+    }
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }
