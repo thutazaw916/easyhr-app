@@ -25,7 +25,7 @@ export default function DashboardPage() {
       setStats({
         totalEmployees: empRes.status === 'fulfilled' ? empRes.value.data.pagination?.total || 0 : 0,
         pendingLeaves: leaveRes.status === 'fulfilled' ? (leaveRes.value.data?.length || 0) : 0,
-        announcements: annRes.status === 'fulfilled' ? (leaveRes.value.data?.length || 0) : 0,
+        announcements: annRes.status === 'fulfilled' ? (annRes.value.data?.length || 0) : 0,
         subscription: subRes.status === 'fulfilled' ? subRes.value.data : null,
       });
     } catch (e) {
