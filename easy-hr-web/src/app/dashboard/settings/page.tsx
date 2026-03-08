@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { getCompanySettings, updateCompanySettings, getDepartments, getBranches, addDepartment, addBranch } from '@/lib/api';
 import { Settings, Save, Building2, Users, Plus, X, MapPin, Clock } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<any>(null);
@@ -12,6 +13,7 @@ export default function SettingsPage() {
   const [showAddDept, setShowAddDept] = useState(false);
   const [showAddBranch, setShowAddBranch] = useState(false);
   const [tab, setTab] = useState<'schedule' | 'departments' | 'branches'>('schedule');
+  const { toast } = useToast();
 
   useEffect(() => { load(); }, []);
 
@@ -30,8 +32,8 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       await updateCompanySettings(settings);
-      alert('Settings saved!');
-    } catch { alert('Failed to save'); }
+      toast('Settings saved successfully!', 'success');
+    } catch { toast('Failed to save settings', 'error'); }
     setSaving(false);
   };
 
@@ -41,8 +43,9 @@ export default function SettingsPage() {
     try {
       await addDepartment({ name: form.get('name'), name_mm: form.get('name_mm') || undefined });
       setShowAddDept(false);
+      toast('Department added!', 'success');
       load();
-    } catch (err: any) { alert(err.response?.data?.message || 'Failed'); }
+    } catch (err: any) { toast(err.response?.data?.message || 'Failed to add department', 'error'); }
   };
 
   const handleAddBranch = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -56,8 +59,9 @@ export default function SettingsPage() {
         longitude: form.get('longitude') ? Number(form.get('longitude')) : undefined,
       });
       setShowAddBranch(false);
+      toast('Branch added!', 'success');
       load();
-    } catch (err: any) { alert(err.response?.data?.message || 'Failed'); }
+    } catch (err: any) { toast(err.response?.data?.message || 'Failed to add branch', 'error'); }
   };
 
   const inputClass = "w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition text-sm";

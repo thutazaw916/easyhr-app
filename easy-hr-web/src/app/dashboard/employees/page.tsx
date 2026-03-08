@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { getEmployees, addEmployee, deleteEmployee } from '@/lib/api';
 import { Users, Plus, Search, Trash2, Phone, Briefcase, Calendar, CreditCard, Hash, User, Shield, ChevronDown, X, Eye } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 const COMMON_POSITIONS = [
   'Admin', 'Sales', 'Marketing', 'Accountant', 'Cashier',
@@ -28,6 +30,8 @@ export default function EmployeesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [posSearch, setPosSearch] = useState('');
   const [showPosSuggestions, setShowPosSuggestions] = useState(false);
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
 
   useEffect(() => { loadEmployees(); }, [page, search]);
 
@@ -44,11 +48,13 @@ export default function EmployeesPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Deactivate ${name}?`)) return;
+    const ok = await confirm({ title: 'Deactivate Employee', message: `Are you sure you want to deactivate ${name}?`, confirmText: 'Deactivate', variant: 'danger' });
+    if (!ok) return;
     try {
       await deleteEmployee(id);
+      toast('Employee deactivated successfully', 'success');
       loadEmployees();
-    } catch (e) { alert('Failed to deactivate'); }
+    } catch (e) { toast('Failed to deactivate employee', 'error'); }
   };
 
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -58,7 +64,7 @@ export default function EmployeesPage() {
     const phone = (form.get('phone') as string || '').trim();
 
     if (!/^(09\d{7,9}|\+?959\d{7,9}|0[1-9]\d{6,8})$/.test(phone.replace(/[\s-]/g, ''))) {
-      alert('Please enter a valid Myanmar phone number (e.g. 09xxxxxxxxx)');
+      toast('Please enter a valid Myanmar phone number (e.g. 09xxxxxxxxx)', 'error');
       setSubmitting(false);
       return;
     }
@@ -85,9 +91,10 @@ export default function EmployeesPage() {
       await addEmployee(data);
       setShowAdd(false);
       setPosSearch('');
+      toast('Employee added successfully!', 'success');
       loadEmployees();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to add employee');
+      toast(err.response?.data?.message || 'Failed to add employee', 'error');
     } finally {
       setSubmitting(false);
     }

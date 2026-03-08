@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { getMonthlyPayroll, calculatePayroll } from '@/lib/api';
 import { Wallet, Calculator, Download } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 export default function PayrollPage() {
   const [payroll, setPayroll] = useState<any>(null);
@@ -9,6 +11,8 @@ export default function PayrollPage() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
 
   useEffect(() => { loadPayroll(); }, [year, month]);
 
@@ -22,11 +26,13 @@ export default function PayrollPage() {
   };
 
   const handleCalculate = async () => {
-    if (!confirm('Calculate payroll for this month?')) return;
+    const ok = await confirm({ title: 'Calculate Payroll', message: `Calculate payroll for ${new Date(2024, month-1).toLocaleString('en', {month:'long'})} ${year}?`, confirmText: 'Calculate', variant: 'info' });
+    if (!ok) return;
     try {
       await calculatePayroll(year, month);
+      toast('Payroll calculated successfully!', 'success');
       loadPayroll();
-    } catch (e) { alert('Failed to calculate'); }
+    } catch (e) { toast('Failed to calculate payroll', 'error'); }
   };
 
   const records = payroll?.payroll || payroll?.records || [];

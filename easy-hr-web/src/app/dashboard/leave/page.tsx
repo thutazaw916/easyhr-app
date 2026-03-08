@@ -2,10 +2,14 @@
 import { useEffect, useState } from 'react';
 import { getPendingLeaves, approveLeave, rejectLeave } from '@/lib/api';
 import { CalendarDays, Check, X, Clock } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 export default function LeavePage() {
   const [leaves, setLeaves] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const { confirm, prompt } = useConfirm();
 
   useEffect(() => { loadLeaves(); }, []);
 
@@ -19,13 +23,15 @@ export default function LeavePage() {
   };
 
   const handleApprove = async (id: string) => {
-    try { await approveLeave(id); loadLeaves(); } catch { alert('Failed'); }
+    const ok = await confirm({ title: 'Approve Leave', message: 'Approve this leave request?', confirmText: 'Approve', variant: 'info' });
+    if (!ok) return;
+    try { await approveLeave(id); toast('Leave approved', 'success'); loadLeaves(); } catch { toast('Failed to approve', 'error'); }
   };
 
   const handleReject = async (id: string) => {
-    const reason = prompt('Rejection reason:');
+    const reason = await prompt('Reject Leave', 'Please provide a reason for rejection:', 'Enter reason...');
     if (!reason) return;
-    try { await rejectLeave(id, reason); loadLeaves(); } catch { alert('Failed'); }
+    try { await rejectLeave(id, reason); toast('Leave rejected', 'success'); loadLeaves(); } catch { toast('Failed to reject', 'error'); }
   };
 
   return (

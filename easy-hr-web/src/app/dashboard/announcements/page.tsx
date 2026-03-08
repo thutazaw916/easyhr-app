@@ -1,12 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { getAnnouncements, createAnnouncement } from '@/lib/api';
-import { Megaphone, Plus } from 'lucide-react';
+import { Megaphone, Plus, X } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
 
 export default function AnnouncementsPage() {
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => { load(); }, []);
 
@@ -22,8 +24,9 @@ export default function AnnouncementsPage() {
     try {
       await createAnnouncement({ title: form.get('title'), content: form.get('content'), priority: form.get('priority') || 'normal' });
       setShowAdd(false);
+      toast('Announcement posted!', 'success');
       load();
-    } catch { alert('Failed'); }
+    } catch { toast('Failed to post announcement', 'error'); }
   };
 
   return (
@@ -64,9 +67,12 @@ export default function AnnouncementsPage() {
       )}
 
       {showAdd && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-bold mb-4">New Announcement</h3>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowAdd(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">New Announcement</h3>
+              <button onClick={() => setShowAdd(false)} className="p-1.5 hover:bg-gray-100 rounded-lg"><X size={18} /></button>
+            </div>
             <form onSubmit={handleAdd} className="space-y-3">
               <input name="title" placeholder="Title *" required className="w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-primary" />
               <textarea name="content" placeholder="Content *" required rows={4} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-primary resize-none" />
