@@ -5,7 +5,9 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3000/api/v1/:path*',
+        destination: process.env.NODE_ENV === 'production' 
+          ? 'https://easyhr-api.onrender.com/api/v1/:path*'
+          : 'http://localhost:3000/api/v1/:path*',
       },
     ];
   },

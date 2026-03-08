@@ -2,9 +2,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-const String baseUrl = 'http://10.0.2.2:3000/api/v1'; // Android emulator → localhost
+// Development URLs (uncomment for local testing)
+// const String baseUrl = 'http://10.0.2.2:3000/api/v1'; // Android emulator → localhost
 // const String baseUrl = 'http://localhost:3000/api/v1'; // iOS simulator
-// const String baseUrl = 'https://your-production-url.com/api/v1'; // Production
+
+// Production URL
+const String baseUrl = 'https://easyhr-api.onrender.com/api/v1';
 
 class ApiService {
   late final Dio _dio;
