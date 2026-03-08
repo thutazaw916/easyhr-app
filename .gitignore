@@ -1,0 +1,15 @@
+.env
+.DS_Store
+*.zip
+*.apk
+*.dill
+node_modules/
+.next/
+easy_hr/build/
+easy_hr/.dart_tool/
+easy-hr-backend/dist/
+easy-hr-backend/node_modules/
+easy-hr-web/node_modules/
+easy-hr-web/.next/
+easy_hr/.zshrc*
+package-lock.json

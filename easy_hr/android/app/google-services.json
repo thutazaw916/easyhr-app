@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "87983656864",
+    "project_id": "easy-hr-23a6a",
+    "storage_bucket": "easy-hr-23a6a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:87983656864:android:6f360781f2004f87aa5ec5",
+        "android_client_info": {
+          "package_name": "com.example.easyhrapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOziYHaVDAlRd_uEcUfAWBHsLXXmPJis4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

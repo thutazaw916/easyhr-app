@@ -1,0 +1,48 @@
+easy-hr-backend/
+├── .env                                    ← Environment variables (Supabase keys)
+├── schema_part4_auth_tables.sql            ← Run this in Supabase SQL Editor
+│
+└── src/
+    ├── main.ts                             ← App entry + Swagger docs setup
+    ├── app.module.ts                       ← Root module
+    │
+    ├── supabase/
+    │   ├── supabase.module.ts
+    │   └── supabase.service.ts             ← Database connection + CRUD helpers
+    │
+    ├── auth/
+    │   ├── auth.module.ts
+    │   ├── auth.service.ts                 ← Signup, Login, OTP logic
+    │   ├── auth.controller.ts              ← Auth API endpoints
+    │   ├── dto/
+    │   │   └── auth.dto.ts                 ← Validation classes
+    │   ├── guards/
+    │   │   ├── jwt-auth.guard.ts           ← JWT protection
+    │   │   └── roles.guard.ts              ← Role-based access
+    │   └── strategies/
+    │       └── jwt.strategy.ts             ← JWT validation
+    │
+    ├── company/
+    │   ├── company.module.ts
+    │   ├── company.service.ts              ← Company profile + dashboard
+    │   └── company.controller.ts
+    │
+    ├── employee/
+    │   ├── employee.module.ts
+    │   ├── employee.service.ts             ← Add/List/Update employees
+    │   └── employee.controller.ts
+    │
+    ├── branch/
+    │   ├── branch.module.ts
+    │   ├── branch.service.ts               ← Branch + GPS setup
+    │   └── branch.controller.ts
+    │
+    ├── department/
+    │   ├── department.module.ts
+    │   ├── department.service.ts
+    │   └── department.controller.ts
+    │
+    └── position/
+        ├── position.module.ts
+        ├── position.service.ts
+        └── position.controller.ts
