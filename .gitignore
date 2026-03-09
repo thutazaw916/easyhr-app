@@ -13,3 +13,6 @@ easy-hr-web/node_modules/
 easy-hr-web/.next/
 easy_hr/.zshrc*
 package-lock.json
+
+# Local Netlify folder
+.netlify

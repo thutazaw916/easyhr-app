@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head><title>Easy HR App Icon Generator</title></head>
+<body style="background:#222;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;color:white">
+<h2>Easy HR App Icon</h2>
+<canvas id="c" width="1024" height="1024"></canvas>
+<br>
+<button onclick="download()" style="padding:12px 32px;font-size:18px;background:#2563eb;color:white;border:none;border-radius:8px;cursor:pointer">Download PNG (1024x1024)</button>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+const W = 1024;
+
+// Background - rounded rect with gradient
+const grad = ctx.createLinearGradient(0, 0, W, W);
+grad.addColorStop(0, '#1e40af');
+grad.addColorStop(0.5, '#2563eb');
+grad.addColorStop(1, '#3b82f6');
+
+// Draw rounded rectangle background
+const r = 200;
+ctx.beginPath();
+ctx.moveTo(r, 0);
+ctx.lineTo(W - r, 0);
+ctx.quadraticCurveTo(W, 0, W, r);
+ctx.lineTo(W, W - r);
+ctx.quadraticCurveTo(W, W, W - r, W);
+ctx.lineTo(r, W);
+ctx.quadraticCurveTo(0, W, 0, W - r);
+ctx.lineTo(0, r);
+ctx.quadraticCurveTo(0, 0, r, 0);
+ctx.closePath();
+ctx.fillStyle = grad;
+ctx.fill();
+
+// Subtle inner shadow/glow
+const innerGrad = ctx.createRadialGradient(W/2, W*0.3, 0, W/2, W/2, W*0.7);
+innerGrad.addColorStop(0, 'rgba(255,255,255,0.15)');
+innerGrad.addColorStop(1, 'rgba(0,0,0,0.1)');
+ctx.fillStyle = innerGrad;
+ctx.fill();
+
+// Person icon (head + body) - stylized HR person
+const cx = W * 0.5;
+const cy = W * 0.32;
+
+// Head circle
+ctx.beginPath();
+ctx.arc(cx, cy, 95, 0, Math.PI * 2);
+ctx.fillStyle = 'rgba(255,255,255,0.95)';
+ctx.fill();
+
+// Body/shoulders
+ctx.beginPath();
+ctx.moveTo(cx - 150, W * 0.62);
+ctx.quadraticCurveTo(cx - 150, W * 0.44, cx - 60, W * 0.44);
+ctx.lineTo(cx + 60, W * 0.44);
+ctx.quadraticCurveTo(cx + 150, W * 0.44, cx + 150, W * 0.62);
+ctx.lineTo(cx + 150, W * 0.62);
+ctx.lineTo(cx - 150, W * 0.62);
+ctx.closePath();
+ctx.fillStyle = 'rgba(255,255,255,0.95)';
+ctx.fill();
+
+// "Easy HR" text
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+
+// "Easy" text
+ctx.font = 'bold 130px -apple-system, Arial, sans-serif';
+ctx.fillStyle = 'rgba(255,255,255,0.95)';
+ctx.fillText('Easy', W/2, W * 0.73);
+
+// "HR" text - larger, bolder
+ctx.font = '900 180px -apple-system, Arial, sans-serif';
+ctx.fillStyle = '#ffffff';
+ctx.fillText('HR', W/2, W * 0.88);
+
+// Checkmark accent on top-right
+ctx.beginPath();
+ctx.moveTo(W * 0.72, W * 0.15);
+ctx.lineTo(W * 0.76, W * 0.19);
+ctx.lineTo(W * 0.84, W * 0.09);
+ctx.strokeStyle = '#4ade80';
+ctx.lineWidth = 18;
+ctx.lineCap = 'round';
+ctx.lineJoin = 'round';
+ctx.stroke();
+
+function download() {
+  const link = document.createElement('a');
+  link.download = 'easyhr_icon_1024.png';
+  link.href = c.toDataURL('image/png');
+  link.click();
+}
+</script>
+</body>
+</html>

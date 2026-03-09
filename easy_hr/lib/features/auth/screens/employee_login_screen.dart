@@ -22,7 +22,7 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
   bool _isSendingOtp = false;
   bool _isVerifying = false;
   String? _statusMessage;
-  bool _useFirebase = true; // true = Firebase SMS, false = backend dev OTP
+  bool _useFirebase = false; // false = backend OTP (Firebase Blaze not available)
   String? _devOtp;
 
   Future<void> _sendOtp() async {
