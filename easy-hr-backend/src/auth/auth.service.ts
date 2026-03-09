@@ -41,7 +41,6 @@ export class AuthService {
         throw new ConflictException('Company with this email already exists');
       }
       // Not verified yet - delete old record and allow re-registration
-      await db.from('auth_credentials').delete().eq('company_id', existing.id);
       await db.from('companies').delete().eq('id', existing.id);
     }
 
