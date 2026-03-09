@@ -67,21 +67,17 @@ export class AuthService {
 
     if (error) throw new BadRequestException(error.message);
 
-    // Send verification code via email
-    const emailSent = await this.emailService.sendVerificationCode(
+    // Send verification code via email (non-blocking - don't wait)
+    this.emailService.sendVerificationCode(
       dto.email,
       dto.name,
       verificationCode,
-    );
+    ).catch(() => {});
 
     return {
-      message: emailSent
-        ? 'Company registered! Please check your email for the verification code.'
-        : 'Company registered! Verification code generated (email delivery pending).',
+      message: 'Company registered! Verification code generated.',
       company_id: company.id,
       company_name: company.name,
-      email_sent: emailSent,
-      // Always return code for dev mode (email delivery is unreliable)
       dev_verification_code: verificationCode,
     };
   }
