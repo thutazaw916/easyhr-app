@@ -82,8 +82,8 @@ export class AuthService {
       company_id: company.id,
       company_name: company.name,
       email_sent: emailSent,
-      // Fallback: show code if email failed (dev safety net)
-      ...(!emailSent && { verification_code: verificationCode }),
+      // Always return code for dev mode (email delivery is unreliable)
+      dev_verification_code: verificationCode,
     };
   }
 
