@@ -43,7 +43,13 @@ class FirebasePhoneAuthService {
             msg = 'SMS quota ကျော်လွန်ပါပြီ';
             break;
           default:
-            msg = e.message ?? 'OTP ပို့၍ မရပါ';
+            // Handle BILLING_NOT_ENABLED and other internal errors
+            if (e.message?.contains('BILLING_NOT_ENABLED') == true ||
+                e.message?.contains('internal error') == true) {
+              msg = 'BILLING_NOT_ENABLED';
+            } else {
+              msg = e.message ?? 'OTP ပို့၍ မရပါ';
+            }
         }
         onError(msg);
       },

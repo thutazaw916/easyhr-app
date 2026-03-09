@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -123,7 +124,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       _nextStep();
     } catch (e) {
       setState(() => _isLoading = false);
-      _showError(e.toString());
+      if (e is DioException && e.response?.statusCode == 409) {
+        _showError('ဒီ email/phone နဲ့ မှတ်ပုံတင်ပြီးသားဖြစ်ပါတယ်');
+      } else if (e is DioException) {
+        _showError(e.response?.data?['message'] ?? 'Connection error');
+      } else {
+        _showError(e.toString());
+      }
     }
   }
 

@@ -49,6 +49,12 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
         },
         onError: (error) {
           if (mounted) {
+            if (error == 'BILLING_NOT_ENABLED') {
+              // Auto-fallback to backend dev OTP
+              setState(() => _useFirebase = false);
+              _sendOtp(); // Retry with backend OTP
+              return;
+            }
             setState(() {
               _isSendingOtp = false;
               _statusMessage = null;
