@@ -24,6 +24,12 @@ export class SuperAdminController {
     return this.service.login(data.email, data.password);
   }
 
+  @Post('reset-password')
+  @ApiOperation({ summary: '🔧 Reset super admin password (no auth required)' })
+  async resetPassword(@Body() data: { email: string; new_password: string }) {
+    return this.service.resetPassword(data.email, data.new_password);
+  }
+
   // ============================================
   // DASHBOARD (Protected)
   // ============================================

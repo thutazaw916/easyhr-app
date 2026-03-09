@@ -32,12 +32,17 @@ export class AuthService {
     // Check if email already exists
     const { data: existing } = await db
       .from('companies')
-      .select('id')
+      .select('id, verified')
       .eq('email', dto.email)
       .single();
 
     if (existing) {
-      throw new ConflictException('Company with this email already exists');
+      if (existing.verified) {
+        throw new ConflictException('Company with this email already exists');
+      }
+      // Not verified yet - delete old record and allow re-registration
+      await db.from('auth_credentials').delete().eq('company_id', existing.id);
+      await db.from('companies').delete().eq('id', existing.id);
     }
 
     // Generate 6-digit verification code

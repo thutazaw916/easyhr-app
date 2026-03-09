@@ -79,6 +79,30 @@ export class SuperAdminService {
   }
 
   // ============================================
+  // RESET PASSWORD
+  // ============================================
+  async resetPassword(email: string, newPassword: string) {
+    const db = this.supabaseService.getClient();
+
+    const { data: admin } = await db
+      .from('super_admins')
+      .select('id, email')
+      .eq('email', email)
+      .single();
+
+    if (!admin) {
+      // Return all super admin emails for reference
+      const { data: all } = await db.from('super_admins').select('email');
+      return { message: 'Email not found', existing_emails: all?.map((a: any) => a.email) || [] };
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await db.from('super_admins').update({ password_hash: passwordHash }).eq('id', admin.id);
+
+    return { message: 'Password reset successful', email: admin.email };
+  }
+
+  // ============================================
   // PLATFORM OVERVIEW DASHBOARD
   // ============================================
   async getPlatformOverview() {
