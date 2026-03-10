@@ -7,7 +7,13 @@ export class BranchService {
   constructor(private supabaseService: SupabaseService) {}
 
   async createBranch(companyId: string, data: any) {
-    return this.supabaseService.create('branches', { company_id: companyId, ...data });
+    const qrSecret = this.generateQrSecret();
+    return this.supabaseService.create('branches', {
+      company_id: companyId,
+      qr_code_enabled: true,
+      qr_secret_key: qrSecret,
+      ...data,
+    });
   }
 
   async listBranches(companyId: string) {

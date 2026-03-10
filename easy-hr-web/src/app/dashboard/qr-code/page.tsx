@@ -131,7 +131,7 @@ export default function QrCodePage() {
         <div className="bg-[#1C1C1E] rounded-2xl border border-[#38383A] p-20 text-center">
           <Building2 className="w-12 h-12 mx-auto mb-3 text-[#8E8E93] opacity-30" />
           <p className="text-[#8E8E93] font-medium">No branches found</p>
-          <p className="text-[#8E8E93] text-sm mt-1">Add a branch in Settings first, then enable QR code here</p>
+          <p className="text-[#8E8E93] text-sm mt-1">QR codes are automatically generated for each branch. Add a branch in Settings to get started.</p>
           <a href="/dashboard/settings" className="inline-block mt-4 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium">
             Go to Settings
           </a>

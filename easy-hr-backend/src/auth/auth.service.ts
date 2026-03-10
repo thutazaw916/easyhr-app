@@ -135,6 +135,17 @@ export class AuthService {
       })
       .eq('id', company.id);
 
+    // Auto-create default "Head Office" branch with QR enabled
+    const qrSecret = 'EHR-' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    await db.from('branches').insert({
+      company_id: company.id,
+      name: 'Head Office',
+      name_mm: 'ရုံးချုပ်',
+      is_active: true,
+      qr_code_enabled: true,
+      qr_secret_key: qrSecret,
+    });
+
     return {
       message: 'Company verified successfully! Please set up your owner account.',
       company_id: company.id,

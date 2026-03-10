@@ -268,7 +268,7 @@ class _QrCodeScreenState extends ConsumerState<QrCodeScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            mm ? 'Settings > Branches မှာ ရုံးခွဲ ထည့်ပါ' : 'Add branches in Settings first',
+            mm ? 'QR code များကို ရုံးခွဲအလိုက် အလိုအလျောက် ထုတ်ပေးပါသည်' : 'QR codes are auto-generated for each branch',
             style: TextStyle(fontSize: 13, color: Colors.grey[500]),
           ),
         ],
