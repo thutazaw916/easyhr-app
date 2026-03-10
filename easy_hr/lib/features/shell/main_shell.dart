@@ -9,19 +9,22 @@ class MainShell extends ConsumerWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
 
-  int _getSelectedIndex(BuildContext context) {
+  int _getSelectedIndex(BuildContext context, {required bool showAdmin}) {
     final location = GoRouterState.of(context).matchedLocation;
     if (location == '/') return 0;
     if (location == '/attendance') return 1;
     if (location == '/payroll') return 2;
     if (location == '/leave') return 3;
     if (location == '/profile') return 4;
+    if (showAdmin && location.startsWith('/admin')) return 5;
     return 0;
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedIndex = _getSelectedIndex(context);
+    final auth = ref.watch(authProvider);
+    final showAdmin = auth.user?.isAdmin == true;
+    final selectedIndex = _getSelectedIndex(context, showAdmin: showAdmin);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final lang = ref.watch(languageProvider);
     final s = AppStrings.get(lang);
@@ -46,6 +49,9 @@ class MainShell extends ConsumerWidget {
               case 2: context.go('/payroll'); break;
               case 3: context.go('/leave'); break;
               case 4: context.go('/profile'); break;
+              case 5:
+                if (showAdmin) context.go('/admin/dashboard');
+                break;
             }
           },
           items: [
@@ -54,6 +60,12 @@ class MainShell extends ConsumerWidget {
             BottomNavigationBarItem(icon: const Icon(Iconsax.money_send), activeIcon: const Icon(Iconsax.money_send), label: s['nav_payroll']),
             BottomNavigationBarItem(icon: const Icon(Iconsax.calendar_1), activeIcon: const Icon(Iconsax.calendar5), label: s['nav_leave']),
             BottomNavigationBarItem(icon: const Icon(Iconsax.user), activeIcon: const Icon(Iconsax.user5), label: s['nav_profile']),
+            if (showAdmin)
+              const BottomNavigationBarItem(
+                icon: Icon(Iconsax.setting_2),
+                activeIcon: Icon(Iconsax.setting_25),
+                label: 'Admin',
+              ),
           ],
         ),
       ),
