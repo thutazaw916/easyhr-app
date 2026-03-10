@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
@@ -176,7 +177,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   String _getErrorMessage(dynamic error) {
     if (error is DioException) {
-      return error.response?.data?['message'] ?? 'Connection error';
+      final serverMsg = error.response?.data?['message'];
+      if (serverMsg != null) return serverMsg.toString();
+
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.sendTimeout) {
+        return 'Request timeout. Please try again.';
+      }
+
+      final underlying = error.error;
+      if (underlying is SocketException) {
+        return 'No internet connection';
+      }
+      if (underlying is HandshakeException) {
+        return 'SSL connection failed';
+      }
+
+      return 'Connection error';
     }
     return error.toString();
   }
