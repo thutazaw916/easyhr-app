@@ -178,40 +178,62 @@ export class AuthService {
       .eq('role', 'owner')
       .single();
 
-    if (existingOwner) {
-      throw new ConflictException('Owner account already exists');
-    }
-
     // Hash password
     const hashedPassword = await bcrypt.hash(dto.password, 12);
 
-    // Create owner employee record
-    const { data: owner, error } = await db
-      .from('employees')
-      .insert({
-        company_id: company.id,
-        first_name: dto.owner_name,
-        phone: dto.owner_phone,
-        email: dto.email,
-        role: 'owner',
-        join_date: new Date().toISOString().split('T')[0],
-        contract_type: 'permanent',
-        is_active: true,
-      })
-      .select()
-      .single();
+    let ownerId: string;
 
-    if (error) throw new BadRequestException(error.message);
+    if (existingOwner?.id) {
+      ownerId = existingOwner.id;
 
-    // Store password hash (in a separate auth table or Supabase Auth)
-    // For simplicity, we'll use a custom auth_credentials table
+      // Keep owner profile info reasonably up to date
+      await db
+        .from('employees')
+        .update({
+          first_name: dto.owner_name,
+          phone: dto.owner_phone,
+          email: dto.email,
+        })
+        .eq('id', ownerId);
+    } else {
+      // Create owner employee record
+      const { data: owner, error } = await db
+        .from('employees')
+        .insert({
+          company_id: company.id,
+          first_name: dto.owner_name,
+          phone: dto.owner_phone,
+          email: dto.email,
+          role: 'owner',
+          join_date: new Date().toISOString().split('T')[0],
+          contract_type: 'permanent',
+          is_active: true,
+        })
+        .select()
+        .single();
+
+      if (error) throw new BadRequestException(error.message);
+      ownerId = owner.id;
+    }
+
+    // Store / update password hash (custom auth_credentials table)
     await db
       .from('auth_credentials')
-      .insert({
-        employee_id: owner.id,
-        email: dto.email,
-        password_hash: hashedPassword,
-      });
+      .upsert(
+        {
+          employee_id: ownerId,
+          email: dto.email,
+          password_hash: hashedPassword,
+        },
+        { onConflict: 'employee_id' },
+      );
+
+    // Fetch owner for token generation
+    const { data: owner } = await db
+      .from('employees')
+      .select('*')
+      .eq('id', ownerId)
+      .single();
 
     // Generate JWT token
     const token = this.generateToken(owner, company);
