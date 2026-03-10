@@ -24,7 +24,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(icon: const Icon(Iconsax.arrow_left), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(
+          icon: const Icon(Iconsax.arrow_left),
+          onPressed: () {
+            if (GoRouter.of(context).canPop()) {
+              context.pop();
+            } else {
+              context.go('/');
+            }
+          },
+        ),
         title: const Text('Admin Dashboard'),
         actions: [
           IconButton(icon: const Icon(Iconsax.export_1), onPressed: () {}),
