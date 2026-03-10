@@ -129,6 +129,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             _buildActionTile(context, isDark, Iconsax.user_add, 'Add Employee', 'Register new staff', AppColors.primary, () => context.push('/admin/employees/add')),
             _buildActionTile(context, isDark, Iconsax.people5, 'Employee List', 'View & manage all staff', AppColors.accent, () => context.push('/admin/employees')),
             _buildActionTile(context, isDark, Iconsax.document_text, 'Attendance Report', 'Daily & monthly reports', AppColors.info, () => context.push('/admin/attendance-report')),
+            _buildActionTile(context, isDark, Iconsax.scan_barcode, 'QR Code', 'Generate QR for check-in', AppColors.present, () => context.push('/admin/qr-code')),
 
             const SizedBox(height: 24),
 

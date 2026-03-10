@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getCompanies, suspendCompany, unsuspendCompany, updatePlan } from '@/lib/api';
+import { getCompanies, suspendCompany, unsuspendCompany, updatePlan, deleteCompany } from '@/lib/api';
 
 interface Company {
   id: string;
@@ -66,27 +66,41 @@ export default function CompaniesPage() {
     }
   };
 
+  const handleDelete = async (company: Company) => {
+    const name = company.name || 'this company';
+    const email = company.email || '';
+    if (!confirm(`⚠️ PERMANENTLY DELETE "${name}"?\n\nThis will delete ALL data (employees, attendance, payroll, etc.) and free up the email: ${email}\n\nThis action CANNOT be undone!`)) return;
+    if (!confirm(`FINAL CONFIRMATION: Type OK to permanently delete "${name}"?`)) return;
+    try {
+      const result = await deleteCompany(company.id);
+      alert(result.message || 'Company deleted');
+      load();
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Failed to delete');
+    }
+  };
+
   const planBadge = (plan?: string) => {
     const colors: Record<string, string> = {
-      free: 'bg-gray-100 text-gray-700',
-      starter: 'bg-blue-100 text-blue-700',
-      business: 'bg-purple-100 text-purple-700',
-      enterprise: 'bg-amber-100 text-amber-700',
+      free: 'bg-[#2C2C2E] text-[#8E8E93]',
+      starter: 'bg-blue-500/15 text-blue-400',
+      business: 'bg-purple-500/15 text-purple-400',
+      enterprise: 'bg-amber-500/15 text-amber-400',
     };
     return colors[plan || 'free'] || colors.free;
   };
 
   const statusBadge = (status?: string) => {
-    if (status === 'suspended') return 'bg-red-100 text-red-700';
-    if (status === 'active') return 'bg-green-100 text-green-700';
-    return 'bg-gray-100 text-gray-700';
+    if (status === 'suspended') return 'bg-red-500/15 text-red-400';
+    if (status === 'active') return 'bg-emerald-500/15 text-emerald-400';
+    return 'bg-[#2C2C2E] text-[#8E8E93]';
   };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Companies</h1>
-        <span className="text-sm text-gray-500">{companies.length} total</span>
+        <span className="text-sm text-[#8E8E93]">{companies.length} total</span>
       </div>
 
       {/* Filters */}
@@ -97,12 +111,12 @@ export default function CompaniesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && load()}
-          className="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none"
+          className="flex-1 px-4 py-2 rounded-xl border border-[#38383A] bg-[#2C2C2E] text-white placeholder-[#8E8E93] focus:ring-2 focus:ring-primary outline-none"
         />
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary outline-none"
+          className="px-4 py-2 rounded-xl border border-[#38383A] bg-[#2C2C2E] text-white focus:ring-2 focus:ring-primary outline-none"
         >
           <option value="">All Plans</option>
           <option value="free">Free</option>
@@ -115,29 +129,29 @@ export default function CompaniesPage() {
         </button>
       </div>
 
-      {error && <p className="text-danger bg-red-50 p-3 rounded-xl mb-4">{error}</p>}
+      {error && <p className="text-red-400 bg-red-500/15 p-3 rounded-xl mb-4">{error}</p>}
 
       {loading ? (
-        <p className="text-gray-400">Loading...</p>
+        <p className="text-[#8E8E93]">Loading...</p>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-[#1C1C1E] rounded-2xl border border-[#38383A] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-6 py-4 font-medium text-gray-500">Company</th>
-                <th className="text-left px-6 py-4 font-medium text-gray-500">Plan</th>
-                <th className="text-left px-6 py-4 font-medium text-gray-500">Status</th>
-                <th className="text-left px-6 py-4 font-medium text-gray-500">Employees</th>
-                <th className="text-left px-6 py-4 font-medium text-gray-500">Joined</th>
-                <th className="text-right px-6 py-4 font-medium text-gray-500">Actions</th>
+              <tr className="bg-[#2C2C2E] border-b border-[#38383A]">
+                <th className="text-left px-6 py-4 font-medium text-[#8E8E93]">Company</th>
+                <th className="text-left px-6 py-4 font-medium text-[#8E8E93]">Plan</th>
+                <th className="text-left px-6 py-4 font-medium text-[#8E8E93]">Status</th>
+                <th className="text-left px-6 py-4 font-medium text-[#8E8E93]">Employees</th>
+                <th className="text-left px-6 py-4 font-medium text-[#8E8E93]">Joined</th>
+                <th className="text-right px-6 py-4 font-medium text-[#8E8E93]">Actions</th>
               </tr>
             </thead>
             <tbody>
               {companies.map((c) => (
-                <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                <tr key={c.id} className="border-b border-[#2C2C2E] hover:bg-[#2C2C2E]/50 transition">
                   <td className="px-6 py-4">
-                    <p className="font-medium">{c.name}</p>
-                    <p className="text-xs text-gray-400">{c.email}</p>
+                    <p className="font-medium text-white">{c.name}</p>
+                    <p className="text-xs text-[#8E8E93]">{c.email}</p>
                   </td>
                   <td className="px-6 py-4">
                     <select
@@ -156,13 +170,13 @@ export default function CompaniesPage() {
                       {c.status || 'active'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{c.employee_count ?? '-'}</td>
-                  <td className="px-6 py-4 text-gray-400 text-xs">
+                  <td className="px-6 py-4 text-[#8E8E93]">{c.employee_count ?? '-'}</td>
+                  <td className="px-6 py-4 text-[#8E8E93] text-xs">
                     {c.created_at ? new Date(c.created_at).toLocaleDateString() : '-'}
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-4 text-right space-x-3">
                     {c.status === 'suspended' ? (
-                      <button onClick={() => handleUnsuspend(c.id)} className="text-xs text-green-600 hover:underline">
+                      <button onClick={() => handleUnsuspend(c.id)} className="text-xs text-emerald-400 hover:underline">
                         Unsuspend
                       </button>
                     ) : (
@@ -170,11 +184,14 @@ export default function CompaniesPage() {
                         Suspend
                       </button>
                     )}
+                    <button onClick={() => handleDelete(c)} className="text-xs text-red-400 bg-red-500/15 px-2 py-1 rounded hover:bg-red-500/25 font-medium">
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
               {companies.length === 0 && (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400">No companies found</td></tr>
+                <tr><td colSpan={6} className="px-6 py-8 text-center text-[#8E8E93]">No companies found</td></tr>
               )}
             </tbody>
           </table>

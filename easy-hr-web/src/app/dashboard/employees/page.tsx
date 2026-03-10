@@ -13,10 +13,10 @@ const COMMON_POSITIONS = [
 ];
 
 const ROLE_COLORS: Record<string, string> = {
-  owner: 'bg-purple-50 text-purple-600',
-  hr_manager: 'bg-blue-50 text-blue-600',
-  department_head: 'bg-amber-50 text-amber-600',
-  employee: 'bg-gray-100 text-gray-600',
+  owner: 'bg-purple-500/15 text-purple-400',
+  hr_manager: 'bg-blue-500/15 text-blue-400',
+  department_head: 'bg-amber-500/15 text-amber-400',
+  employee: 'bg-[#2C2C2E] text-[#8E8E93]',
 };
 
 export default function EmployeesPage() {
@@ -104,15 +104,15 @@ export default function EmployeesPage() {
     ? COMMON_POSITIONS.filter(p => p.toLowerCase().includes(posSearch.toLowerCase()))
     : COMMON_POSITIONS;
 
-  const inputClass = "w-full px-4 py-2.5 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition text-sm";
-  const labelClass = "text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block";
+  const inputClass = "w-full px-4 py-2.5 rounded-xl border border-[#38383A] bg-[#2C2C2E] text-white outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition text-sm placeholder-[#8E8E93]";
+  const labelClass = "text-xs font-semibold text-[#8E8E93] uppercase tracking-wide mb-1.5 block";
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
-          <p className="text-gray-500 text-sm mt-1">{pagination.total || 0} total employees</p>
+          <h1 className="text-2xl font-bold text-white">Employees</h1>
+          <p className="text-[#8E8E93] text-sm mt-1">{pagination.total || 0} total employees</p>
         </div>
         <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-700 transition font-medium shadow-sm shadow-primary/20">
           <Plus size={18} /> Add Employee
@@ -121,63 +121,63 @@ export default function EmployeesPage() {
 
       {/* Search */}
       <div className="relative mb-6">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8E8E93]" size={18} />
         <input
           type="text"
           placeholder="Search by name, phone, position..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition"
+          className="w-full pl-11 pr-4 py-3 rounded-xl border border-[#38383A] bg-[#1C1C1E] text-white placeholder-[#8E8E93] focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition"
         />
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+      <div className="bg-[#1C1C1E] rounded-2xl border border-[#38383A] overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
           </div>
         ) : employees.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">
+          <div className="text-center py-20 text-[#8E8E93]">
             <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p className="font-medium">No employees found</p>
             <p className="text-sm mt-1">Add your first employee to get started</p>
           </div>
         ) : (
           <table className="w-full">
-            <thead className="bg-gray-50/80">
+            <thead className="bg-[#2C2C2E]">
               <tr>
-                <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Employee</th>
-                <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone</th>
-                <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Position</th>
-                <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Join Date</th>
-                <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Role</th>
-                <th className="text-left px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                <th className="text-right px-6 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
+                <th className="text-left px-6 py-3.5 text-xs font-semibold text-[#8E8E93] uppercase tracking-wide">Employee</th>
+                <th className="text-left px-6 py-3.5 text-xs font-semibold text-[#8E8E93] uppercase tracking-wide">Phone</th>
+                <th className="text-left px-6 py-3.5 text-xs font-semibold text-[#8E8E93] uppercase tracking-wide hidden md:table-cell">Position</th>
+                <th className="text-left px-6 py-3.5 text-xs font-semibold text-[#8E8E93] uppercase tracking-wide hidden lg:table-cell">Join Date</th>
+                <th className="text-left px-6 py-3.5 text-xs font-semibold text-[#8E8E93] uppercase tracking-wide">Role</th>
+                <th className="text-left px-6 py-3.5 text-xs font-semibold text-[#8E8E93] uppercase tracking-wide">Status</th>
+                <th className="text-right px-6 py-3.5 text-xs font-semibold text-[#8E8E93] uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-[#2C2C2E]">
               {employees.map((emp) => (
-                <tr key={emp.id} className="hover:bg-gray-50/50 transition group">
+                <tr key={emp.id} className="hover:bg-[#2C2C2E]/50 transition group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary-400 font-bold text-sm shrink-0">
                         {(emp.first_name || '?')[0].toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-gray-900 truncate">{emp.first_name} {emp.last_name || ''}</p>
-                        {emp.employee_code && <p className="text-xs text-gray-400">#{emp.employee_code}</p>}
+                        <p className="font-semibold text-white truncate">{emp.first_name} {emp.last_name || ''}</p>
+                        {emp.employee_code && <p className="text-xs text-[#8E8E93]">#{emp.employee_code}</p>}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-1.5 text-sm text-gray-600"><Phone size={14} className="text-gray-400" /> {emp.phone}</div>
+                    <div className="flex items-center gap-1.5 text-sm text-[#8E8E93]"><Phone size={14} className="text-[#8E8E93]" /> {emp.phone}</div>
                   </td>
                   <td className="px-6 py-4 hidden md:table-cell">
-                    <span className="text-sm text-gray-600">{emp.position || emp.department?.name || '-'}</span>
+                    <span className="text-sm text-[#8E8E93]">{emp.position || emp.department?.name || '-'}</span>
                   </td>
                   <td className="px-6 py-4 hidden lg:table-cell">
-                    <span className="text-sm text-gray-500">{emp.join_date ? new Date(emp.join_date).toLocaleDateString() : '-'}</span>
+                    <span className="text-sm text-[#8E8E93]">{emp.join_date ? new Date(emp.join_date).toLocaleDateString() : '-'}</span>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium capitalize ${ROLE_COLORS[emp.role] || 'bg-gray-100 text-gray-600'}`}>
@@ -185,17 +185,17 @@ export default function EmployeesPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${emp.is_active ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${emp.is_active ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${emp.is_active ? 'bg-green-500' : 'bg-red-400'}`} />
                       {emp.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
-                      <button onClick={() => setShowDetail(emp)} className="p-2 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-500 transition" title="View Details">
+                      <button onClick={() => setShowDetail(emp)} className="p-2 hover:bg-blue-500/10 rounded-lg text-[#8E8E93] hover:text-blue-400 transition" title="View Details">
                         <Eye size={16} />
                       </button>
-                      <button onClick={() => handleDelete(emp.id, emp.first_name)} className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition" title="Deactivate">
+                      <button onClick={() => handleDelete(emp.id, emp.first_name)} className="p-2 hover:bg-red-500/10 rounded-lg text-[#8E8E93] hover:text-red-400 transition" title="Deactivate">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -210,10 +210,10 @@ export default function EmployeesPage() {
       {/* Pagination */}
       {pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <p className="text-sm text-gray-500">Page {page} of {pagination.total_pages}</p>
+          <p className="text-sm text-[#8E8E93]">Page {page} of {pagination.total_pages}</p>
           <div className="flex gap-2">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-4 py-2 rounded-lg border text-sm disabled:opacity-30 hover:bg-gray-50">Previous</button>
-            <button onClick={() => setPage(p => p + 1)} disabled={page >= pagination.total_pages} className="px-4 py-2 rounded-lg border text-sm disabled:opacity-30 hover:bg-gray-50">Next</button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="px-4 py-2 rounded-lg border border-[#38383A] text-sm text-[#8E8E93] disabled:opacity-30 hover:bg-[#1C1C1E]">Previous</button>
+            <button onClick={() => setPage(p => p + 1)} disabled={page >= pagination.total_pages} className="px-4 py-2 rounded-lg border border-[#38383A] text-sm text-[#8E8E93] disabled:opacity-30 hover:bg-[#1C1C1E]">Next</button>
           </div>
         </div>
       )}
@@ -221,15 +221,15 @@ export default function EmployeesPage() {
       {/* Add Employee Modal */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowAdd(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b px-6 py-4 rounded-t-2xl flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">Add New Employee</h3>
-              <button onClick={() => setShowAdd(false)} className="p-1.5 hover:bg-gray-100 rounded-lg transition"><X size={18} /></button>
+          <div className="bg-[#1C1C1E] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-[#38383A]" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-[#1C1C1E] border-b border-[#38383A] px-6 py-4 rounded-t-2xl flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">Add New Employee</h3>
+              <button onClick={() => setShowAdd(false)} className="p-1.5 hover:bg-[#2C2C2E] rounded-lg transition text-[#8E8E93]"><X size={18} /></button>
             </div>
             <form onSubmit={handleAdd} className="p-6 space-y-5">
               {/* Personal Info */}
               <div>
-                <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><User size={15} className="text-primary" /> Personal Information</h4>
+                <h4 className="text-sm font-bold text-[#8E8E93] mb-3 flex items-center gap-2"><User size={15} className="text-primary" /> Personal Information</h4>
                 <div className="space-y-3">
                   <div>
                     <label className={labelClass}>Full Name *</label>
@@ -238,8 +238,8 @@ export default function EmployeesPage() {
                   <div>
                     <label className={labelClass}>Phone Number *</label>
                     <input name="phone" placeholder="09xxxxxxxxx" required className={inputClass} />
-                    <p className="text-xs text-blue-500 mt-1 italic">* Employee will use this phone for OTP login</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Formats: 09xxx, +959xxx, 01xxx (Yangon)</p>
+                    <p className="text-xs text-blue-400 mt-1 italic">* Employee will use this phone for OTP login</p>
+                    <p className="text-xs text-[#8E8E93] mt-0.5">Formats: 09xxx, +959xxx, 01xxx (Yangon)</p>
                   </div>
                   <div>
                     <label className={labelClass}>NRC Number</label>
@@ -261,7 +261,7 @@ export default function EmployeesPage() {
 
               {/* Work Info */}
               <div>
-                <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><Briefcase size={15} className="text-primary" /> Work Information</h4>
+                <h4 className="text-sm font-bold text-[#8E8E93] mb-3 flex items-center gap-2"><Briefcase size={15} className="text-primary" /> Work Information</h4>
                 <div className="space-y-3">
                   <div>
                     <label className={labelClass}>System Role</label>
@@ -281,11 +281,11 @@ export default function EmployeesPage() {
                       className={inputClass}
                     />
                     {showPosSuggestions && filteredPositions.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+                      <div className="absolute z-10 w-full mt-1 bg-[#2C2C2E] border border-[#38383A] rounded-xl shadow-lg max-h-40 overflow-y-auto">
                         {filteredPositions.map((pos) => (
                           <button key={pos} type="button" onClick={() => { setPosSearch(pos); setShowPosSuggestions(false); }}
-                            className="w-full text-left px-4 py-2 text-sm hover:bg-primary/5 hover:text-primary transition flex items-center gap-2">
-                            <Briefcase size={14} className="text-gray-400" /> {pos}
+                            className="w-full text-left px-4 py-2 text-sm text-white hover:bg-primary/10 hover:text-primary transition flex items-center gap-2">
+                            <Briefcase size={14} className="text-[#8E8E93]" /> {pos}
                           </button>
                         ))}
                       </div>
@@ -303,7 +303,7 @@ export default function EmployeesPage() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowAdd(false)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium transition">Cancel</button>
+                <button type="button" onClick={() => setShowAdd(false)} className="flex-1 py-2.5 rounded-xl border border-[#38383A] text-[#8E8E93] hover:bg-[#2C2C2E] font-medium transition">Cancel</button>
                 <button type="submit" disabled={submitting} className="flex-1 py-2.5 rounded-xl bg-primary text-white hover:bg-primary-700 font-medium transition disabled:opacity-50 flex items-center justify-center gap-2">
                   {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Adding...</> : <><Plus size={16} /> Add Employee</>}
                 </button>
@@ -316,17 +316,17 @@ export default function EmployeesPage() {
       {/* Employee Detail Modal */}
       {showDetail && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDetail(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#1C1C1E] rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto border border-[#38383A]" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold">Employee Details</h3>
-                <button onClick={() => setShowDetail(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition"><X size={18} /></button>
+                <h3 className="text-lg font-bold text-white">Employee Details</h3>
+                <button onClick={() => setShowDetail(null)} className="p-1.5 hover:bg-[#2C2C2E] rounded-lg transition text-[#8E8E93]"><X size={18} /></button>
               </div>
               <div className="flex flex-col items-center mb-6">
-                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl mb-3">
+                <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-primary-400 font-bold text-2xl mb-3">
                   {(showDetail.first_name || '?')[0].toUpperCase()}
                 </div>
-                <h4 className="text-xl font-bold text-gray-900">{showDetail.first_name} {showDetail.last_name || ''}</h4>
+                <h4 className="text-xl font-bold text-white">{showDetail.first_name} {showDetail.last_name || ''}</h4>
                 <span className={`mt-2 px-3 py-1 rounded-full text-xs font-medium capitalize ${ROLE_COLORS[showDetail.role] || 'bg-gray-100 text-gray-600'}`}>
                   {showDetail.role?.replace('_', ' ')}
                 </span>
@@ -342,11 +342,11 @@ export default function EmployeesPage() {
                   { label: 'Base Salary', value: showDetail.base_salary ? `${Number(showDetail.base_salary).toLocaleString()} MMK` : '-', icon: CreditCard },
                   { label: 'Status', value: showDetail.is_active ? 'Active' : 'Inactive', icon: Shield },
                 ].map((item, i) => (
-                  <div key={i} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <item.icon size={15} className="text-gray-400" /> {item.label}
+                  <div key={i} className="flex items-center justify-between py-2.5 border-b border-[#2C2C2E] last:border-0">
+                    <div className="flex items-center gap-2 text-sm text-[#8E8E93]">
+                      <item.icon size={15} className="text-[#8E8E93]" /> {item.label}
                     </div>
-                    <span className="text-sm font-medium text-gray-900 capitalize">{item.value}</span>
+                    <span className="text-sm font-medium text-white capitalize">{item.value}</span>
                   </div>
                 ))}
               </div>

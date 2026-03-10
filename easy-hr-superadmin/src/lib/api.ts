@@ -41,6 +41,17 @@ export const unsuspendCompany = (id: string) =>
   request(`/super-admin/companies/${id}/unsuspend`, { method: 'PUT' });
 export const updatePlan = (id: string, data: Record<string, unknown>) =>
   request(`/super-admin/companies/${id}/plan`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteCompany = (id: string) =>
+  request(`/super-admin/companies/${id}/permanent`, { method: 'DELETE' });
+
+// Email Whitelist
+export const getWhitelist = () => request('/super-admin/whitelist');
+export const addToWhitelist = (email: string, note?: string) =>
+  request('/super-admin/whitelist', { method: 'POST', body: JSON.stringify({ email, note }) });
+export const removeFromWhitelist = (id: string) =>
+  request(`/super-admin/whitelist/${id}`, { method: 'DELETE' });
+export const toggleWhitelist = (enabled: boolean) =>
+  request('/super-admin/whitelist/toggle', { method: 'PUT', body: JSON.stringify({ enabled }) });
 
 // Payments
 export const getPendingPayments = () => request('/billing/admin/pending');

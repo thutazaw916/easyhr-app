@@ -2,6 +2,7 @@ import type { Config } from 'tailwindcss';
 
 const config: Config = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -11,6 +12,15 @@ const config: Config = {
         warning: '#F59E0B',
         danger: '#EF4444',
         info: '#6366F1',
+        dark: {
+          bg: '#000000',
+          card: '#1C1C1E',
+          elevated: '#2C2C2E',
+          border: '#38383A',
+          divider: '#2C2C2E',
+          text: '#FFFFFF',
+          secondary: '#8E8E93',
+        },
       },
     },
   },

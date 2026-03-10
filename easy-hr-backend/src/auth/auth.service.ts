@@ -29,6 +29,27 @@ export class AuthService {
   async companySignUp(dto: CompanySignUpDto) {
     const db = this.supabaseService.getClient();
 
+    // Check whitelist enforcement
+    const { data: whitelistSetting } = await db
+      .from('platform_settings')
+      .select('value')
+      .eq('key', 'whitelist_enabled')
+      .single();
+
+    if (whitelistSetting?.value === 'true') {
+      const { data: whitelisted } = await db
+        .from('email_whitelist')
+        .select('id')
+        .eq('email', dto.email.toLowerCase())
+        .single();
+
+      if (!whitelisted) {
+        throw new BadRequestException(
+          'Registration is currently by invitation only. Please contact the platform admin for access.'
+        );
+      }
+    }
+
     // Check if email already exists
     const { data: existing } = await db
       .from('companies')

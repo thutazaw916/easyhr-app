@@ -245,3 +245,22 @@ CREATE TABLE IF NOT EXISTS payments (
 
 CREATE INDEX IF NOT EXISTS idx_payments_company ON payments(company_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+
+-- 14. EMAIL WHITELIST TABLE (Super Admin access control)
+-- ============================================
+CREATE TABLE IF NOT EXISTS email_whitelist (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  note TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_whitelist_email ON email_whitelist(email);
+
+-- 15. PLATFORM SETTINGS TABLE (key-value config store)
+-- ============================================
+CREATE TABLE IF NOT EXISTS platform_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);

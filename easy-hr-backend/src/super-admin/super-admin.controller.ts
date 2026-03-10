@@ -114,4 +114,48 @@ export class SuperAdminController {
   async deleteCompany(@Param('id') id: string) {
     return this.service.deleteCompany(id);
   }
+
+  @Delete('companies/:id/permanent')
+  @UseGuards(SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '🗑️ Permanently delete company & all data (frees email for re-use)' })
+  async hardDeleteCompany(@Param('id') id: string) {
+    return this.service.hardDeleteCompany(id);
+  }
+
+  // ============================================
+  // EMAIL WHITELIST
+  // ============================================
+
+  @Get('whitelist')
+  @UseGuards(SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '📋 Get email whitelist' })
+  async getWhitelist() {
+    return this.service.getWhitelist();
+  }
+
+  @Post('whitelist')
+  @UseGuards(SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '➕ Add email to whitelist' })
+  async addToWhitelist(@Body() data: { email: string; note?: string }) {
+    return this.service.addToWhitelist(data.email, data.note);
+  }
+
+  @Delete('whitelist/:id')
+  @UseGuards(SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '❌ Remove email from whitelist' })
+  async removeFromWhitelist(@Param('id') id: string) {
+    return this.service.removeFromWhitelist(id);
+  }
+
+  @Put('whitelist/toggle')
+  @UseGuards(SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '🔄 Enable/disable whitelist enforcement' })
+  async toggleWhitelist(@Body() data: { enabled: boolean }) {
+    return this.service.toggleWhitelist(data.enabled);
+  }
 }

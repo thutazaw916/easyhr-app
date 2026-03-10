@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../supabase/supabase.service';
 import * as bcrypt from 'bcrypt';
@@ -348,6 +348,105 @@ export class SuperAdminService {
     const { error } = await db.from('companies').update({ is_active: false }).eq('id', companyId);
     if (error) throw error;
     return { message: 'Company deactivated' };
+  }
+
+  // ============================================
+  // HARD DELETE COMPANY (Permanent - frees email)
+  // ============================================
+  async hardDeleteCompany(companyId: string) {
+    const db = this.supabaseService.getClient();
+
+    // Verify company exists
+    const { data: company } = await db.from('companies').select('id, name, email').eq('id', companyId).single();
+    if (!company) throw new NotFoundException('Company not found');
+
+    // Delete in order: dependent tables first
+    const tables = [
+      'payroll_records',
+      'attendance',
+      'leave_requests',
+      'leave_balances',
+      'salary_structures',
+      'announcements',
+      'chat_messages',
+      'employees',
+      'positions',
+      'departments',
+      'branches',
+      'billing_payments',
+      'subscriptions',
+    ];
+
+    for (const table of tables) {
+      const { error } = await db.from(table).delete().eq('company_id', companyId);
+      if (error) {
+        console.warn(`Warning: Could not delete from ${table}: ${error.message}`);
+      }
+    }
+
+    // Finally delete the company itself
+    const { error: companyError } = await db.from('companies').delete().eq('id', companyId);
+    if (companyError) throw companyError;
+
+    return {
+      message: `Company "${company.name}" permanently deleted. Email ${company.email} is now available.`,
+      deleted_company: { id: companyId, name: company.name, email: company.email },
+    };
+  }
+
+  // ============================================
+  // EMAIL WHITELIST MANAGEMENT
+  // ============================================
+  async getWhitelist() {
+    const db = this.supabaseService.getClient();
+    const { data, error } = await db
+      .from('email_whitelist')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return { whitelist: data || [], enabled: await this.isWhitelistEnabled() };
+  }
+
+  async addToWhitelist(email: string, note?: string) {
+    const db = this.supabaseService.getClient();
+    const { data: existing } = await db.from('email_whitelist').select('id').eq('email', email.toLowerCase()).single();
+    if (existing) throw new BadRequestException('Email already in whitelist');
+
+    const { data, error } = await db
+      .from('email_whitelist')
+      .insert({ email: email.toLowerCase(), note: note || null })
+      .select()
+      .single();
+    if (error) throw error;
+    return { message: `${email} added to whitelist`, entry: data };
+  }
+
+  async removeFromWhitelist(id: string) {
+    const db = this.supabaseService.getClient();
+    const { error } = await db.from('email_whitelist').delete().eq('id', id);
+    if (error) throw error;
+    return { message: 'Removed from whitelist' };
+  }
+
+  async toggleWhitelist(enabled: boolean) {
+    const db = this.supabaseService.getClient();
+    await db.from('platform_settings').upsert({ key: 'whitelist_enabled', value: String(enabled) }, { onConflict: 'key' });
+    return { message: `Whitelist ${enabled ? 'enabled' : 'disabled'}`, enabled };
+  }
+
+  async isWhitelistEnabled(): Promise<boolean> {
+    const db = this.supabaseService.getClient();
+    const { data } = await db.from('platform_settings').select('value').eq('key', 'whitelist_enabled').single();
+    return data?.value === 'true';
+  }
+
+  async isEmailWhitelisted(email: string): Promise<boolean> {
+    const enabled = await this.isWhitelistEnabled();
+    if (!enabled) return true; // whitelist disabled = everyone allowed
+
+    const db = this.supabaseService.getClient();
+    const { data } = await db.from('email_whitelist').select('id').eq('email', email.toLowerCase()).single();
+    return !!data;
   }
 
   // ============================================

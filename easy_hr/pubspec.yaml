@@ -1,7 +1,7 @@
 name: easy_hr
 description: Easy HR - Myanmar SME HR Management App
 publish_to: 'none'
-version: 1.0.2+3
+version: 1.0.3+4
 
 environment:
   sdk: ^3.6.0
@@ -38,6 +38,8 @@ dependencies:
   # QR Code
   qr_flutter: ^4.1.0
   mobile_scanner: ^6.0.5
+  share_plus: ^10.1.4
+  path_provider: ^2.1.5
 
   # Charts
   fl_chart: ^0.70.2

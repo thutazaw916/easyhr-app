@@ -18,6 +18,7 @@ import '../../features/admin/screens/admin_dashboard_screen.dart';
 import '../../features/admin/screens/employee_list_screen.dart';
 import '../../features/admin/screens/add_employee_screen.dart';
 import '../../features/admin/screens/attendance_report_screen.dart';
+import '../../features/admin/screens/qr_code_screen.dart';
 import '../../features/payroll/screens/payroll_screen.dart';
 import '../../features/payroll/screens/salary_advance_screen.dart';
 import '../../features/settings/screens/company_settings_screen.dart';
@@ -79,6 +80,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/admin/employees', builder: (context, state) => const EmployeeListScreen()),
       GoRoute(path: '/admin/employees/add', builder: (context, state) => const AddEmployeeScreen()),
       GoRoute(path: '/admin/attendance-report', builder: (context, state) => const AttendanceReportScreen()),
+      GoRoute(path: '/admin/qr-code', builder: (context, state) => const QrCodeScreen()),
 
       // Payroll Sub Routes
       GoRoute(path: '/payroll/advance', builder: (context, state) => const SalaryAdvanceScreen()),

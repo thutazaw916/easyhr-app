@@ -26,17 +26,17 @@ const icons = {
 };
 
 const styles = {
-  success: 'bg-green-50 border-green-200 text-green-800',
-  error: 'bg-red-50 border-red-200 text-red-800',
-  warning: 'bg-amber-50 border-amber-200 text-amber-800',
-  info: 'bg-blue-50 border-blue-200 text-blue-800',
+  success: 'bg-[#1C1C1E] border-emerald-500/30 text-emerald-400',
+  error: 'bg-[#1C1C1E] border-red-500/30 text-red-400',
+  warning: 'bg-[#1C1C1E] border-amber-500/30 text-amber-400',
+  info: 'bg-[#1C1C1E] border-blue-500/30 text-blue-400',
 };
 
 const iconColors = {
-  success: 'text-green-500',
-  error: 'text-red-500',
-  warning: 'text-amber-500',
-  info: 'text-blue-500',
+  success: 'text-emerald-400',
+  error: 'text-red-400',
+  warning: 'text-amber-400',
+  info: 'text-blue-400',
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {

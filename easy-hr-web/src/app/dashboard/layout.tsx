@@ -27,7 +27,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <ToastProvider>
       <ConfirmProvider>
-        <div className="flex min-h-screen bg-slate-50">
+        <div className="flex min-h-screen bg-black">
           <Sidebar />
           <main className="flex-1 overflow-auto">
             <div className="p-6 lg:p-8">{children}</div>

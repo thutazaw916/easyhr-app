@@ -27,7 +27,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-black">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-white text-2xl font-bold mb-4">
@@ -37,30 +37,30 @@ export default function LoginPage() {
           <p className="text-gray-400 mt-1">Super Admin Dashboard</p>
         </div>
 
-        <form onSubmit={handleLogin} className="bg-white rounded-2xl shadow-xl p-8 space-y-5">
+        <form onSubmit={handleLogin} className="bg-[#1C1C1E] rounded-2xl shadow-xl p-8 space-y-5 border border-[#38383A]">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-[#8E8E93] mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
+              className="w-full px-4 py-3 rounded-xl border border-[#38383A] bg-[#2C2C2E] text-white placeholder-[#8E8E93] focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
               placeholder="admin@easyhr-mm.com"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-[#8E8E93] mb-1">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
+              className="w-full px-4 py-3 rounded-xl border border-[#38383A] bg-[#2C2C2E] text-white placeholder-[#8E8E93] focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
               placeholder="••••••••"
               required
             />
           </div>
-          {error && <p className="text-danger text-sm bg-red-50 p-3 rounded-lg">{error}</p>}
+          {error && <p className="text-red-400 text-sm bg-red-500/15 p-3 rounded-lg">{error}</p>}
           <button
             type="submit"
             disabled={loading}

@@ -290,6 +290,16 @@ class ApiService {
     return response.data;
   }
 
+  Future<Map<String, dynamic>> getBranch(String id) async {
+    final response = await _dio.get('/branches/$id');
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> toggleBranchQr(String id, bool enabled) async {
+    final response = await _dio.put('/branches/$id/qr-toggle', data: {'enabled': enabled});
+    return response.data;
+  }
+
   // ============================================
   // AI CHATBOT
   // ============================================

@@ -62,6 +62,8 @@ export const getDepartments = () => api.get('/departments');
 export const addDepartment = (data: any) => api.post('/departments', data);
 export const getBranches = () => api.get('/branches');
 export const addBranch = (data: any) => api.post('/branches', data);
+export const getBranch = (id: string) => api.get(`/branches/${id}`);
+export const toggleBranchQr = (id: string, enabled: boolean) => api.put(`/branches/${id}/qr-toggle`, { enabled });
 
 // Company
 export const getCompanySettings = () => api.get('/company/settings');

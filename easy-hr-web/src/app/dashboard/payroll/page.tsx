@@ -50,14 +50,14 @@ export default function PayrollPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Payroll</h1>
-          <p className="text-gray-500 text-sm mt-1">Monthly salary management</p>
+          <h1 className="text-2xl font-bold text-white">Payroll</h1>
+          <p className="text-[#8E8E93] text-sm mt-1">Monthly salary management</p>
         </div>
         <div className="flex items-center gap-3">
-          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="px-3 py-2.5 rounded-xl border border-gray-200 outline-none">
+          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="px-3 py-2.5 rounded-xl border border-[#38383A] bg-[#1C1C1E] text-white outline-none">
             {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => <option key={m} value={m}>{new Date(2024, m-1).toLocaleString('en', {month:'long'})}</option>)}
           </select>
-          <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="px-3 py-2.5 rounded-xl border border-gray-200 outline-none">
+          <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="px-3 py-2.5 rounded-xl border border-[#38383A] bg-[#1C1C1E] text-white outline-none">
             {[2024,2025,2026].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
           <button onClick={handleCalculate} className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-700 transition font-medium">
@@ -66,37 +66,37 @@ export default function PayrollPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-[#1C1C1E] rounded-2xl border border-[#38383A] overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>
         ) : records.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">
+          <div className="text-center py-20 text-[#8E8E93]">
             <Wallet className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>No payroll records for this month</p>
             <button onClick={handleCalculate} className="mt-3 px-4 py-2 bg-primary text-white rounded-lg text-sm">Calculate Now</button>
           </div>
         ) : (
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#2C2C2E]">
               <tr>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Employee</th>
-                <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Basic Salary</th>
-                <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Allowances</th>
-                <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Deductions</th>
-                <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Net Salary</th>
-                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-[#8E8E93] uppercase">Employee</th>
+                <th className="text-right px-6 py-3 text-xs font-semibold text-[#8E8E93] uppercase">Basic Salary</th>
+                <th className="text-right px-6 py-3 text-xs font-semibold text-[#8E8E93] uppercase">Allowances</th>
+                <th className="text-right px-6 py-3 text-xs font-semibold text-[#8E8E93] uppercase">Deductions</th>
+                <th className="text-right px-6 py-3 text-xs font-semibold text-[#8E8E93] uppercase">Net Salary</th>
+                <th className="text-center px-6 py-3 text-xs font-semibold text-[#8E8E93] uppercase">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-[#2C2C2E]">
               {records.map((r: any) => (
-                <tr key={r.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-medium">{r.employee?.first_name || r.first_name} {r.employee?.last_name || r.last_name || ''}</td>
-                  <td className="px-6 py-4 text-right text-sm">{formatMMK(r.basic_salary)} MMK</td>
-                  <td className="px-6 py-4 text-right text-sm text-green-600">+{formatMMK(r.total_allowances || 0)}</td>
-                  <td className="px-6 py-4 text-right text-sm text-red-500">-{formatMMK(r.total_deductions || 0)}</td>
-                  <td className="px-6 py-4 text-right font-bold">{formatMMK(r.net_salary)} MMK</td>
+                <tr key={r.id} className="hover:bg-[#2C2C2E]/50">
+                  <td className="px-6 py-4 font-medium text-white">{r.employee?.first_name || r.first_name} {r.employee?.last_name || r.last_name || ''}</td>
+                  <td className="px-6 py-4 text-right text-sm text-[#8E8E93]">{formatMMK(r.basic_salary)} MMK</td>
+                  <td className="px-6 py-4 text-right text-sm text-emerald-400">+{formatMMK(r.total_allowances || 0)}</td>
+                  <td className="px-6 py-4 text-right text-sm text-red-400">-{formatMMK(r.total_deductions || 0)}</td>
+                  <td className="px-6 py-4 text-right font-bold text-white">{formatMMK(r.net_salary)} MMK</td>
                   <td className="px-6 py-4 text-center">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${r.status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}`}>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${r.status === 'paid' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
                       {r.status || 'pending'}
                     </span>
                   </td>

@@ -24,8 +24,8 @@ export default function DashboardPage() {
     getRevenue().then(setRevenue).catch(() => {});
   }, []);
 
-  if (error) return <div className="text-danger bg-red-50 p-4 rounded-xl">{error}</div>;
-  if (!data) return <div className="text-gray-400">Loading...</div>;
+  if (error) return <div className="text-red-400 bg-red-500/15 p-4 rounded-xl">{error}</div>;
+  if (!data) return <div className="text-[#8E8E93]">Loading...</div>;
 
   const stats = [
     { label: 'Total Companies', value: data.total_companies ?? 0, color: 'bg-blue-500' },
@@ -40,19 +40,19 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div key={s.label} className="bg-[#1C1C1E] rounded-2xl p-6 border border-[#38383A]">
             <div className={`w-10 h-10 ${s.color} rounded-xl flex items-center justify-center text-white text-lg mb-3`}>
               {s.label[0]}
             </div>
-            <p className="text-2xl font-bold">{s.value}</p>
-            <p className="text-sm text-gray-500 mt-1">{s.label}</p>
+            <p className="text-2xl font-bold text-white">{s.value}</p>
+            <p className="text-sm text-[#8E8E93] mt-1">{s.label}</p>
           </div>
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-semibold mb-4">Raw Data (Debug)</h2>
-        <pre className="text-xs bg-gray-50 p-4 rounded-xl overflow-auto max-h-96">
+      <div className="bg-[#1C1C1E] rounded-2xl p-6 border border-[#38383A]">
+        <h2 className="text-lg font-semibold text-white mb-4">Raw Data (Debug)</h2>
+        <pre className="text-xs bg-[#2C2C2E] text-[#8E8E93] p-4 rounded-xl overflow-auto max-h-96">
           {JSON.stringify({ dashboard: data, revenue }, null, 2)}
         </pre>
       </div>
