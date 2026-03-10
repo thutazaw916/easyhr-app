@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -11,7 +12,11 @@ const String baseUrl = 'https://easyhr-api.onrender.com/api/v1';
 
 class ApiService {
   late final Dio _dio;
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+  );
 
   ApiService() {
     _dio = Dio(BaseOptions(
@@ -24,16 +29,21 @@ class ApiService {
     // Add auth token interceptor
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final token = await _storage.read(key: 'access_token');
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
+        try {
+          final token = await _storage.read(key: 'access_token')
+              .timeout(const Duration(seconds: 5), onTimeout: () => null);
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+        } catch (_) {
+          // Ignore storage errors - proceed without token
         }
         handler.next(options);
       },
       onError: (error, handler) {
         if (error.response?.statusCode == 401) {
           // Token expired - redirect to login
-          _storage.deleteAll();
+          try { _storage.deleteAll(); } catch (_) {}
         }
         handler.next(error);
       },
@@ -350,15 +360,25 @@ class ApiService {
   // ============================================
 
   Future<void> saveToken(String token) async {
-    await _storage.write(key: 'access_token', value: token);
+    try {
+      await _storage.write(key: 'access_token', value: token)
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {}
   }
 
   Future<String?> getToken() async {
-    return await _storage.read(key: 'access_token');
+    try {
+      return await _storage.read(key: 'access_token')
+          .timeout(const Duration(seconds: 5), onTimeout: () => null);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> clearToken() async {
-    await _storage.deleteAll();
+    try {
+      await _storage.deleteAll().timeout(const Duration(seconds: 5));
+    } catch (_) {}
   }
 }
 
