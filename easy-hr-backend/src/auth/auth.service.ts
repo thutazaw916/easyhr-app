@@ -29,6 +29,8 @@ export class AuthService {
   async companySignUp(dto: CompanySignUpDto) {
     const db = this.supabaseService.getClient();
 
+    const normalizedEmail = dto.email.trim().toLowerCase();
+
     // Check whitelist enforcement
     const { data: whitelistSetting } = await db
       .from('platform_settings')
@@ -40,7 +42,7 @@ export class AuthService {
       const { data: whitelisted } = await db
         .from('email_whitelist')
         .select('id')
-        .eq('email', dto.email.toLowerCase())
+        .eq('email', normalizedEmail)
         .single();
 
       if (!whitelisted) {
@@ -54,7 +56,7 @@ export class AuthService {
     const { data: existing } = await db
       .from('companies')
       .select('id, verified')
-      .eq('email', dto.email)
+      .eq('email', normalizedEmail)
       .single();
 
     if (existing) {
@@ -75,7 +77,7 @@ export class AuthService {
         name: dto.name,
         name_mm: dto.name_mm,
         business_type: dto.business_type,
-        email: dto.email,
+        email: normalizedEmail,
         phone: dto.phone,
         address: dto.address,
         city: dto.city,
@@ -90,7 +92,7 @@ export class AuthService {
 
     // Send verification code via email (non-blocking - don't wait)
     this.emailService.sendVerificationCode(
-      dto.email,
+      normalizedEmail,
       dto.name,
       verificationCode,
     ).catch(() => {});
@@ -109,10 +111,12 @@ export class AuthService {
   async verifyCompany(dto: VerifyCompanyDto) {
     const db = this.supabaseService.getClient();
 
+    const normalizedEmail = dto.email.trim().toLowerCase();
+
     const { data: company, error } = await db
       .from('companies')
       .select('*')
-      .eq('email', dto.email)
+      .eq('email', normalizedEmail)
       .eq('verification_code', dto.verification_code)
       .single();
 
@@ -158,11 +162,13 @@ export class AuthService {
   async setOwnerPassword(dto: SetPasswordDto) {
     const db = this.supabaseService.getClient();
 
+    const normalizedEmail = dto.email.trim().toLowerCase();
+
     // Find verified company
     const { data: company } = await db
       .from('companies')
       .select('*')
-      .eq('email', dto.email)
+      .eq('email', normalizedEmail)
       .eq('verified', true)
       .single();
 
@@ -192,7 +198,7 @@ export class AuthService {
         .update({
           first_name: dto.owner_name,
           phone: dto.owner_phone,
-          email: dto.email,
+          email: normalizedEmail,
         })
         .eq('id', ownerId);
     } else {
@@ -203,7 +209,7 @@ export class AuthService {
           company_id: company.id,
           first_name: dto.owner_name,
           phone: dto.owner_phone,
-          email: dto.email,
+          email: normalizedEmail,
           role: 'owner',
           join_date: new Date().toISOString().split('T')[0],
           contract_type: 'permanent',
@@ -222,7 +228,7 @@ export class AuthService {
       .upsert(
         {
           employee_id: ownerId,
-          email: dto.email,
+          email: normalizedEmail,
           password_hash: hashedPassword,
         },
         { onConflict: 'employee_id' },
@@ -258,11 +264,13 @@ export class AuthService {
   async adminLogin(dto: AdminLoginDto) {
     const db = this.supabaseService.getClient();
 
+    const normalizedEmail = dto.email.trim().toLowerCase();
+
     // Find credentials
     const { data: cred } = await db
       .from('auth_credentials')
       .select('*, employee:employee_id(*)')
-      .eq('email', dto.email)
+      .eq('email', normalizedEmail)
       .single();
 
     if (!cred) {
