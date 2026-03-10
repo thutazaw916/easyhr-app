@@ -19,23 +19,21 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   int _currentStep = 0;
   bool _isLoading = false;
 
-  // Step 1: Company Info
+  // Step 1: Company Info + Contact
   final _companyNameController = TextEditingController();
   final _companyNameMmController = TextEditingController();
   String _businessType = 'retail';
   final _addressController = TextEditingController();
   final _cityController = TextEditingController();
   String _stateRegion = 'Yangon Region';
-
-  // Step 2: Contact
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  // Step 3: Verify
+  // Step 2: Verify
   final _codeController = TextEditingController();
   String? _devCode;
 
-  // Step 4: Owner Setup
+  // Step 3: Owner Setup
   final _ownerNameController = TextEditingController();
   final _ownerPhoneController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -79,7 +77,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 
   void _nextStep() {
-    if (_currentStep < 3) {
+    if (_currentStep < 2) {
       setState(() => _currentStep++);
       _pageController.animateToPage(_currentStep,
         duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
@@ -94,8 +92,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     }
   }
 
-  // Step 2 → Sign Up Company
+  // Step 1 → Sign Up Company
   Future<void> _handleSignUp() async {
+    if (_companyNameController.text.isEmpty) {
+      _showError('Company name ဖြည့်ပါ');
+      return;
+    }
     if (_emailController.text.isEmpty || _phoneController.text.isEmpty) {
       _showError('Email နှင့် Phone number ဖြည့်ပါ');
       return;
@@ -120,7 +122,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         _isLoading = false;
       });
 
-      _showSuccess('Verification code sent!');
       _nextStep();
     } catch (e) {
       setState(() => _isLoading = false);
@@ -134,7 +135,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     }
   }
 
-  // Step 3 → Verify Code
+  // Step 2 → Verify Code
   Future<void> _handleVerify() async {
     if (_codeController.text.isEmpty) {
       _showError('Verification code ဖြည့်ပါ');
@@ -155,7 +156,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     }
   }
 
-  // Step 4 → Set Owner Password & Login
+  // Step 3 → Set Owner Password & Login
   Future<void> _handleSetPassword() async {
     if (_ownerNameController.text.isEmpty || _ownerPhoneController.text.isEmpty) {
       _showError('Name နှင့် Phone ဖြည့်ပါ');
@@ -224,13 +225,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           icon: const Icon(Iconsax.arrow_left),
           onPressed: _currentStep > 0 ? _prevStep : () => context.pop(),
         ),
-        title: Text('Step ${_currentStep + 1} of 4'),
+        title: Text('Step ${_currentStep + 1} of 3'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Center(
               child: Text(
-                '${((_currentStep + 1) / 4 * 100).round()}%',
+                '${((_currentStep + 1) / 3 * 100).round()}%',
                 style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
               ),
             ),
@@ -245,7 +246,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: (_currentStep + 1) / 4,
+                value: (_currentStep + 1) / 3,
                 backgroundColor: AppColors.primary.withOpacity(0.1),
                 color: AppColors.primary,
                 minHeight: 4,
@@ -260,9 +261,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 _buildStep1CompanyInfo(),
-                _buildStep2Contact(),
-                _buildStep3Verify(),
-                _buildStep4OwnerSetup(),
+                _buildStep2Verify(),
+                _buildStep3OwnerSetup(),
               ],
             ),
           ),
@@ -358,43 +358,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             ],
           ),
 
-          const SizedBox(height: 32),
-
-          SizedBox(
-            width: double.infinity, height: 52,
-            child: ElevatedButton(
-              onPressed: () {
-                if (_companyNameController.text.isEmpty) {
-                  _showError('Company name ဖြည့်ပါ');
-                  return;
-                }
-                _nextStep();
-              },
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [Text('Next'), SizedBox(width: 8), Icon(Iconsax.arrow_right_3, size: 18)],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================
-  // STEP 2: Contact Information
-  // ============================================
-  Widget _buildStep2Contact() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 8),
-          Text('Contact Details', style: Theme.of(context).textTheme.headlineMedium),
-          const SizedBox(height: 4),
-          Text('ဆက်သွယ်ရန်အချက်အလက်ဖြည့်ပါ', style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 28),
+          const SizedBox(height: 20),
 
           const Text('Email Address *'),
           const SizedBox(height: 8),
@@ -406,10 +370,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               prefixIcon: Icon(Iconsax.sms, size: 20),
             ),
           ),
-          const SizedBox(height: 8),
-          Text('Verification code ကို ဒီ email ကို ပို့ပါမယ်',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.warning)),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           const Text('Phone Number *'),
           const SizedBox(height: 8),
@@ -422,7 +383,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             ),
           ),
 
-          const SizedBox(height: 40),
+          const SizedBox(height: 32),
 
           SizedBox(
             width: double.infinity, height: 52,
@@ -430,7 +391,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               onPressed: _isLoading ? null : _handleSignUp,
               child: _isLoading
                   ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Sign Up & Send Code'),
+                  : const Text('Register Company'),
             ),
           ),
         ],
@@ -439,9 +400,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 
   // ============================================
-  // STEP 3: Verify Code
+  // STEP 2: Verify Code
   // ============================================
-  Widget _buildStep3Verify() {
+  Widget _buildStep2Verify() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -521,9 +482,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 
   // ============================================
-  // STEP 4: Owner Account Setup
+  // STEP 3: Owner Account Setup
   // ============================================
-  Widget _buildStep4OwnerSetup() {
+  Widget _buildStep3OwnerSetup() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(

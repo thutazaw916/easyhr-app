@@ -54,10 +54,9 @@ export default function SignUpPage() {
         address: address || undefined,
         city: city || undefined,
       });
-      // If email failed, show fallback code
-      if (res.data?.verification_code) setDevCode(res.data.verification_code);
+      // Show dev verification code
+      if (res.data?.dev_verification_code) setDevCode(res.data.dev_verification_code);
       setStep(2);
-      if (res.data?.email_sent) setDevCode('');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {
