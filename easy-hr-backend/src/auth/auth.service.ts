@@ -231,7 +231,7 @@ export class AuthService {
           email: normalizedEmail,
           password_hash: hashedPassword,
         },
-        { onConflict: 'employee_id' },
+        { onConflict: 'email' },
       );
 
     // Fetch owner for token generation
