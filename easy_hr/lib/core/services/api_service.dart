@@ -181,6 +181,11 @@ class ApiService {
     return response.data;
   }
 
+  Future<Map<String, dynamic>> updateEmployee(String id, Map<String, dynamic> data) async {
+    final response = await _dio.put('/employees/$id', data: data);
+    return response.data;
+  }
+
   // ============================================
   // ATTENDANCE
   // ============================================

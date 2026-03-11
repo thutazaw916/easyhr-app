@@ -346,7 +346,11 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
                     child: OutlinedButton.icon(
                       icon: const Icon(Iconsax.edit, size: 18),
                       label: const Text('Edit'),
-                      onPressed: () { Navigator.pop(ctx); },
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        final result = await context.push('/admin/employees/edit', extra: employee);
+                        if (result == true) _loadEmployees();
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),

@@ -207,16 +207,37 @@ export class EmployeeService {
     const existing = await this.getEmployee(companyId, employeeId);
     if (!existing) throw new NotFoundException('Employee not found');
 
-    const { data: updated, error } = await db
-      .from('employees')
-      .update(data)
-      .eq('id', employeeId)
-      .eq('company_id', companyId)
-      .select()
-      .single();
+    // Sanitize data — convert types and filter nulls
+    const updateData: Record<string, any> = {};
+    const allowedFields = [
+      'first_name', 'last_name', 'name_mm', 'phone', 'email',
+      'department_id', 'position_id', 'branch_id', 'role',
+      'gender', 'position', 'employee_code', 'nrc_number',
+      'join_date', 'date_of_birth', 'contract_type', 'is_active',
+    ];
+    for (const key of allowedFields) {
+      if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+        updateData[key] = data[key];
+      }
+    }
+    if (data.base_salary !== undefined && data.base_salary !== null && data.base_salary !== '') {
+      updateData.base_salary = Number(data.base_salary);
+    }
 
-    if (error) throw error;
-    return updated;
+    try {
+      const { data: updated, error } = await db
+        .from('employees')
+        .update(updateData)
+        .eq('id', employeeId)
+        .eq('company_id', companyId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return updated;
+    } catch (err: any) {
+      throw new BadRequestException(err?.message || 'Failed to update employee');
+    }
   }
 
   // ============================================
