@@ -25,6 +25,7 @@ import '../../features/admin/screens/attendance_report_screen.dart';
 import '../../features/admin/screens/qr_code_screen.dart';
 import '../../features/payroll/screens/payroll_screen.dart';
 import '../../features/payroll/screens/salary_advance_screen.dart';
+import '../../features/payroll/screens/salary_components_screen.dart';
 import '../../features/settings/screens/company_settings_screen.dart';
 import '../../features/settings/screens/branches_screen.dart';
 import '../../features/settings/screens/departments_screen.dart';
@@ -92,6 +93,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Payroll Sub Routes
       GoRoute(path: '/payroll/advance', builder: (context, state) => const SalaryAdvanceScreen()),
+      GoRoute(path: '/payroll/components', builder: (context, state) => const SalaryComponentsScreen()),
 
       // Settings Routes
       GoRoute(path: '/settings/company', builder: (context, state) => const CompanySettingsScreen()),

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
@@ -82,8 +83,10 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> with SingleTicker
         automaticallyImplyLeading: false,
         title: const Text('Payroll'),
         actions: [
-          if (isAdmin)
+          if (isAdmin) ...[
+            IconButton(icon: const Icon(Iconsax.setting_3), tooltip: 'Salary Components', onPressed: () => context.push('/payroll/components')),
             IconButton(icon: const Icon(Iconsax.calculator), tooltip: 'Calculate Payroll', onPressed: () => _showCalculateDialog(context, isDark)),
+          ],
         ],
         bottom: TabBar(
           controller: _tabController,
