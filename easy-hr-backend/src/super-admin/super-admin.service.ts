@@ -440,7 +440,7 @@ export class SuperAdminService {
 
   async addToWhitelist(email: string, note?: string) {
     const db = this.supabaseService.getClient();
-    const { data: existing } = await db.from('email_whitelist').select('id').eq('email', email.toLowerCase()).single();
+    const { data: existing } = await db.from('email_whitelist').select('id').eq('email', email.toLowerCase()).maybeSingle();
     if (existing) throw new BadRequestException('Email already in whitelist');
 
     const { data, error } = await db
@@ -467,7 +467,7 @@ export class SuperAdminService {
 
   async isWhitelistEnabled(): Promise<boolean> {
     const db = this.supabaseService.getClient();
-    const { data } = await db.from('platform_settings').select('value').eq('key', 'whitelist_enabled').single();
+    const { data } = await db.from('platform_settings').select('value').eq('key', 'whitelist_enabled').maybeSingle();
     return data?.value === 'true';
   }
 
@@ -476,7 +476,7 @@ export class SuperAdminService {
     if (!enabled) return true; // whitelist disabled = everyone allowed
 
     const db = this.supabaseService.getClient();
-    const { data } = await db.from('email_whitelist').select('id').eq('email', email.toLowerCase()).single();
+    const { data } = await db.from('email_whitelist').select('id').eq('email', email.toLowerCase()).maybeSingle();
     return !!data;
   }
 
