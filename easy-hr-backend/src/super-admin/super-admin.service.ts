@@ -103,6 +103,37 @@ export class SuperAdminService {
   }
 
   // ============================================
+  // UPDATE CREDENTIALS (change email + password)
+  // ============================================
+  async updateCredentials(currentEmail: string, currentPassword: string, data: { new_email?: string; new_password?: string }) {
+    const db = this.supabaseService.getClient();
+
+    const { data: admin } = await db
+      .from('super_admins')
+      .select('*')
+      .eq('email', currentEmail)
+      .single();
+
+    if (!admin) throw new UnauthorizedException('Admin not found');
+
+    const isValid = await bcrypt.compare(currentPassword, admin.password_hash);
+    if (!isValid) throw new UnauthorizedException('Current password is incorrect');
+
+    const updates: any = {};
+    if (data.new_email) updates.email = data.new_email.toLowerCase();
+    if (data.new_password) updates.password_hash = await bcrypt.hash(data.new_password, 12);
+
+    if (Object.keys(updates).length === 0) throw new BadRequestException('No changes provided');
+
+    await db.from('super_admins').update(updates).eq('id', admin.id);
+
+    return {
+      message: 'Credentials updated successfully',
+      email: data.new_email || admin.email,
+    };
+  }
+
+  // ============================================
   // PLATFORM OVERVIEW DASHBOARD
   // ============================================
   async getPlatformOverview() {

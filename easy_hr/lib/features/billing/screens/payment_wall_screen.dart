@@ -1,15 +1,83 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/api_service.dart';
+import '../../../core/theme/app_theme.dart';
 
-class PaymentWallScreen extends ConsumerWidget {
+class PaymentWallScreen extends ConsumerStatefulWidget {
   final String? reason;
-
   const PaymentWallScreen({super.key, this.reason});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PaymentWallScreen> createState() => _PaymentWallScreenState();
+}
+
+class _PaymentWallScreenState extends ConsumerState<PaymentWallScreen> {
+  String? _selectedPlan;
+  File? _screenshotFile;
+  bool _isUploading = false;
+
+  final _plans = [
+    {'key': 'starter', 'title': 'Starter (စတင်)', 'price': '49,000', 'color': Colors.blue,
+      'features': ['ဝန်ထမ်း ၄၉ ဦးအထိ', 'Leave Management', 'Payroll Calculation']},
+    {'key': 'business', 'title': 'Business (စီးပွားရေး)', 'price': '99,000', 'color': Colors.purple,
+      'features': ['ဝန်ထမ်း ၉၉ ဦးအထိ', 'AI Chatbot', 'Reports & Analytics'], 'popular': true},
+    {'key': 'enterprise', 'title': 'Enterprise (လုပ်ငန်းကြီး)', 'price': '199,000', 'color': Colors.amber.shade700,
+      'features': ['ဝန်ထမ်းအကန့်အသတ်မရှိ', 'Priority Support', 'Custom Integrations']},
+  ];
+
+  Future<void> _pickScreenshot() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (picked != null) setState(() { _screenshotFile = File(picked.path); });
+  }
+
+  Future<void> _submitPayment() async {
+    if (_selectedPlan == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('အစီအစဉ်တစ်ခု ရွေးချယ်ပါ'), backgroundColor: AppColors.warning));
+      return;
+    }
+    if (_screenshotFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ငွေလွှဲ Screenshot ထည့်ပါ'), backgroundColor: AppColors.warning));
+      return;
+    }
+    setState(() => _isUploading = true);
+    try {
+      final api = ref.read(apiServiceProvider);
+      final url = await api.uploadPaymentScreenshot(_screenshotFile!.path);
+      final plan = _plans.firstWhere((p) => p['key'] == _selectedPlan);
+      await api.submitPayment({
+        'plan': _selectedPlan,
+        'amount': int.parse((plan['price'] as String).replaceAll(',', '')),
+        'screenshot_url': url,
+        'payment_method': 'mobile_banking',
+      });
+      setState(() => _isUploading = false);
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(children: [Icon(Icons.check_circle, color: AppColors.present, size: 28), SizedBox(width: 8), Text('တင်ပြီးပါပြီ')]),
+            content: const Text('ငွေလွှဲ Screenshot တင်ပြီးပါပြီ။\n\nAdmin မှ ၂၄ နာရီအတွင်း စစ်ဆေးပြီး အတည်ပြုပေးပါမည်။'),
+            actions: [TextButton(onPressed: () { Navigator.pop(ctx); context.go('/'); }, child: const Text('အိုကေ'))],
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isUploading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final sub = auth.subscription;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -17,155 +85,48 @@ class PaymentWallScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('အစီအစဉ် အဆင့်မြှင့်ရန်'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (GoRouter.of(context).canPop()) {
-              context.pop();
-            } else {
-              context.go('/');
-            }
-          },
-        ),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () {
+          if (GoRouter.of(context).canPop()) context.pop(); else context.go('/');
+        }),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Status Card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: sub?.isExpired == true
-                      ? [Colors.red.shade400, Colors.red.shade600]
-                      : [Colors.orange.shade400, Colors.orange.shade600],
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    sub?.isExpired == true ? Icons.lock_outline : Icons.info_outline,
-                    color: Colors.white,
-                    size: 48,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    sub?.isExpired == true
-                        ? 'သက်တမ်းကုန်ဆုံးသွားပါပြီ'
-                        : 'အခပေးအစီအစဉ် လိုအပ်ပါသည်',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    reason ?? _getDefaultMessage(sub),
-                    style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                  if (sub != null && !sub.isExpired && sub.daysRemaining > 0)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${sub.daysRemaining} ရက် ကျန်ပါသေးသည်',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            _buildStatusCard(sub, isDark),
             const SizedBox(height: 24),
 
-            // Plans
-            _buildPlanCard(
-              context,
-              title: 'Starter',
-              titleMm: 'စတင်',
-              price: '49,000',
-              features: [
-                'ဝန်ထမ်း ၄၉ ဦးအထိ',
-                'Leave Management',
-                'Payroll Calculation',
-              ],
-              color: Colors.blue,
-              isDark: isDark,
-            ),
+            // Step 1
+            Text('၁။ အစီအစဉ် ရွေးချယ်ပါ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
             const SizedBox(height: 12),
-            _buildPlanCard(
-              context,
-              title: 'Business',
-              titleMm: 'စီးပွားရေး',
-              price: '99,000',
-              features: [
-                'ဝန်ထမ်း ၉၉ ဦးအထိ',
-                'AI Chatbot',
-                'Reports & Analytics',
-              ],
-              color: Colors.purple,
-              isPopular: true,
-              isDark: isDark,
-            ),
+            ..._plans.map((p) => _buildPlanTile(p, isDark)),
+
+            const SizedBox(height: 20),
+
+            // Step 2
+            Text('၂။ ငွေလွှဲပါ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
             const SizedBox(height: 12),
-            _buildPlanCard(
-              context,
-              title: 'Enterprise',
-              titleMm: 'လုပ်ငန်းကြီး',
-              price: '199,000',
-              features: [
-                'ဝန်ထမ်းအကန့်အသတ်မရှိ',
-                'Priority Support',
-                'Custom Integrations',
-              ],
-              color: Colors.amber.shade700,
-              isDark: isDark,
-            ),
+            _buildPaymentInfo(isDark),
+
+            const SizedBox(height: 20),
+
+            // Step 3
+            Text('၃။ ငွေလွှဲ Screenshot တင်ပါ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+            const SizedBox(height: 12),
+            _buildScreenshotArea(isDark),
 
             const SizedBox(height: 24),
 
-            // Payment Instructions
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'ငွေပေးချေနည်း',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _paymentMethodRow('KBZPay', '09971489502', Icons.phone_android),
-                  _paymentMethodRow('WavePay', '09971489502', Icons.phone_android),
-                  _paymentMethodRow('KBZ Bank', '06651199910919301', Icons.account_balance),
-                  const SizedBox(height: 12),
-                  Text(
-                    'ငွေလွှဲပြီးပါက Screenshot ကို Admin ထံပို့ပေးပါ။ ၂၄ နာရီအတွင်း အတည်ပြုပေးပါမည်။',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                    ),
-                  ),
-                ],
+            // Submit
+            SizedBox(
+              width: double.infinity, height: 52,
+              child: ElevatedButton.icon(
+                onPressed: _isUploading ? null : _submitPayment,
+                icon: _isUploading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Iconsax.send_1),
+                label: Text(_isUploading ? 'တင်နေသည်...' : 'Screenshot တင်မည်'),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
               ),
             ),
             const SizedBox(height: 40),
@@ -175,94 +136,114 @@ class PaymentWallScreen extends ConsumerWidget {
     );
   }
 
-  String _getDefaultMessage(SubscriptionModel? sub) {
-    if (sub?.isExpired == true) {
-      return 'ဆက်လက်အသုံးပြုရန် အစီအစဉ်တစ်ခုကို ရွေးချယ်ပါ။';
-    }
-    return 'ဤလုပ်ဆောင်ချက်အတွက် အခပေးအစီအစဉ် လိုအပ်ပါသည်။';
+  Widget _buildStatusCard(SubscriptionModel? sub, bool isDark) {
+    return Container(
+      width: double.infinity, padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: sub?.isExpired == true ? [Colors.red.shade400, Colors.red.shade600] : [Colors.orange.shade400, Colors.orange.shade600]),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(children: [
+        Icon(sub?.isExpired == true ? Icons.lock_outline : Icons.info_outline, color: Colors.white, size: 48),
+        const SizedBox(height: 12),
+        Text(sub?.isExpired == true ? 'သက်တမ်းကုန်ဆုံးသွားပါပြီ' : 'အခပေးအစီအစဉ် လိုအပ်ပါသည်',
+            style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Text(widget.reason ?? (sub?.isExpired == true ? 'ဆက်လက်အသုံးပြုရန် အစီအစဉ်တစ်ခုကို ရွေးချယ်ပါ။' : 'ဤလုပ်ဆောင်ချက်အတွက် အခပေးအစီအစဉ် လိုအပ်ပါသည်။'),
+            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14), textAlign: TextAlign.center),
+        if (sub != null && !sub.isExpired && sub.daysRemaining > 0)
+          Padding(padding: const EdgeInsets.only(top: 12), child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+            child: Text('${sub.daysRemaining} ရက် ကျန်ပါသေးသည်', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          )),
+      ]),
+    );
   }
 
-  Widget _buildPlanCard(
-    BuildContext context, {
-    required String title,
-    required String titleMm,
-    required String price,
-    required List<String> features,
-    required Color color,
-    bool isPopular = false,
-    required bool isDark,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade900 : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isPopular ? color : (isDark ? Colors.grey.shade700 : Colors.grey.shade300),
-          width: isPopular ? 2 : 1,
+  Widget _buildPlanTile(Map<String, dynamic> plan, bool isDark) {
+    final color = plan['color'] as Color;
+    final isSelected = _selectedPlan == plan['key'];
+    final features = plan['features'] as List<String>;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedPlan = plan['key'] as String),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(0.08) : (isDark ? Colors.grey.shade900 : Colors.white),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isSelected ? color : (isDark ? Colors.grey.shade700 : Colors.grey.shade300), width: isSelected ? 2.5 : 1),
+          ),
+          child: Row(children: [
+            Container(width: 24, height: 24,
+              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: isSelected ? color : Colors.grey, width: 2), color: isSelected ? color : Colors.transparent),
+              child: isSelected ? const Icon(Icons.check, size: 16, color: Colors.white) : null),
+            const SizedBox(width: 14),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Text(plan['title'] as String, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                if (plan['popular'] == true) ...[const SizedBox(width: 8), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)), child: const Text('Popular', style: TextStyle(color: Colors.white, fontSize: 10)))],
+              ]),
+              Text('${plan['price']} MMK / လ', style: TextStyle(fontSize: 14, color: color, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              ...features.map((f) => Row(children: [Icon(Icons.check_circle, size: 14, color: color), const SizedBox(width: 6), Text(f, style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700))])),
+            ])),
+          ]),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                '$title ($titleMm)',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
-              ),
-              if (isPopular) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Text('Popular', style: TextStyle(color: Colors.white, fontSize: 11)),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$price MMK / လ',
-            style: TextStyle(fontSize: 16, color: color, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 8),
-          ...features.map((f) => Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              children: [
-                Icon(Icons.check_circle, size: 16, color: color),
-                const SizedBox(width: 8),
-                Text(f, style: TextStyle(
-                  fontSize: 13,
-                  color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
-                )),
-              ],
-            ),
-          )),
-        ],
       ),
     );
   }
 
-  Widget _paymentMethodRow(String name, String account, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: Colors.grey),
-          const SizedBox(width: 8),
-          Text('$name: ', style: const TextStyle(fontWeight: FontWeight.w600)),
-          Expanded(child: Text(account, style: const TextStyle(fontFamily: 'monospace'))),
-        ],
+  Widget _buildPaymentInfo(bool isDark) {
+    return Container(
+      width: double.infinity, padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _payRow('KBZPay', '09971489502', Icons.phone_android),
+        _payRow('WavePay', '09971489502', Icons.phone_android),
+        _payRow('KBZ Bank', '06651199910919301', Icons.account_balance),
+      ]),
+    );
+  }
+
+  Widget _payRow(String name, String acc, IconData icon) {
+    return Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(children: [
+      Icon(icon, size: 18, color: Colors.grey), const SizedBox(width: 8),
+      Text('$name: ', style: const TextStyle(fontWeight: FontWeight.w600)),
+      Expanded(child: Text(acc, style: const TextStyle(fontFamily: 'monospace', fontSize: 13))),
+      GestureDetector(onTap: () { Clipboard.setData(ClipboardData(text: acc)); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$name copied'), duration: const Duration(seconds: 1))); },
+        child: const Icon(Icons.copy, size: 16, color: Colors.grey)),
+    ]));
+  }
+
+  Widget _buildScreenshotArea(bool isDark) {
+    return GestureDetector(
+      onTap: _pickScreenshot,
+      child: Container(
+        width: double.infinity,
+        height: _screenshotFile != null ? null : 150,
+        decoration: BoxDecoration(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _screenshotFile != null ? AppColors.present : (isDark ? Colors.grey.shade600 : Colors.grey.shade300), width: _screenshotFile != null ? 2 : 1),
+        ),
+        child: _screenshotFile != null
+            ? Stack(children: [
+                ClipRRect(borderRadius: BorderRadius.circular(13), child: Image.file(_screenshotFile!, width: double.infinity, fit: BoxFit.cover)),
+                Positioned(top: 8, right: 8, child: GestureDetector(
+                  onTap: () => setState(() => _screenshotFile = null),
+                  child: Container(padding: const EdgeInsets.all(6), decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle), child: const Icon(Icons.close, color: Colors.white, size: 18)))),
+                Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: AppColors.present, borderRadius: BorderRadius.circular(8)),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.check, color: Colors.white, size: 14), SizedBox(width: 4), Text('ရွေးပြီး', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600))]))),
+              ])
+            : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Iconsax.image, size: 40, color: Colors.grey.shade400),
+                const SizedBox(height: 8),
+                Text('Screenshot ထည့်ရန် နှိပ်ပါ', style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+                Text('PNG, JPG ဖိုင်များ ရွေးချယ်နိုင်ပါသည်', style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+              ]),
       ),
     );
   }

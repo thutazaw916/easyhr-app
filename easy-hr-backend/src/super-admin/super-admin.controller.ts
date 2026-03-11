@@ -30,6 +30,15 @@ export class SuperAdminController {
     return this.service.resetPassword(data.email, data.new_password);
   }
 
+  @Post('update-credentials')
+  @ApiOperation({ summary: '🔐 Update super admin email & password (requires current password)' })
+  async updateCredentials(@Body() data: { current_email: string; current_password: string; new_email?: string; new_password?: string }) {
+    return this.service.updateCredentials(data.current_email, data.current_password, {
+      new_email: data.new_email,
+      new_password: data.new_password,
+    });
+  }
+
   // ============================================
   // DASHBOARD (Protected)
   // ============================================
