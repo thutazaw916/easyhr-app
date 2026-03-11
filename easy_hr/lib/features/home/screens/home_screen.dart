@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/localization/app_strings.dart';
+import '../../../core/services/api_service.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -107,7 +108,10 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              // Subscription Trial Banner
+              _TrialBanner(ref: ref, mm: mm),
 
               // Admin Dashboard Card (only for admin)
               if (user?.isAdmin ?? false)
@@ -182,6 +186,7 @@ class HomeScreen extends ConsumerWidget {
                     _buildQuickAction(context, Iconsax.money_send, s['payroll'] ?? 'Payroll', AppColors.accent, () => context.go('/payroll')),
                     _buildQuickAction(context, Iconsax.setting_2, s['settings'] ?? 'Settings', AppColors.lightTextSecondary, () => context.push('/settings/company')),
                   ],
+                  _buildQuickAction(context, Iconsax.receipt_2, mm ? 'အစီအစဉ်' : 'Plans', Colors.teal, () => context.push('/billing')),
                 ],
               ),
 
@@ -263,5 +268,86 @@ class HomeScreen extends ConsumerWidget {
     if (hour < 12) return s['good_morning'] ?? 'Good Morning';
     if (hour < 17) return s['good_afternoon'] ?? 'Good Afternoon';
     return s['good_evening'] ?? 'Good Evening';
+  }
+}
+
+class _TrialBanner extends StatelessWidget {
+  final WidgetRef ref;
+  final bool mm;
+  const _TrialBanner({required this.ref, required this.mm});
+
+  @override
+  Widget build(BuildContext context) {
+    final sub = ref.watch(authProvider).subscription;
+    if (sub == null) return const SizedBox.shrink();
+
+    // Show banner for: expired, expiring soon (<=7 days), or free plan
+    if (sub.isExpired) {
+      return _buildBanner(
+        context,
+        color: AppColors.error,
+        icon: Iconsax.warning_2,
+        title: mm ? 'သက်တမ်းကုန်ဆုံးသွားပါပြီ' : 'Subscription Expired',
+        subtitle: mm ? 'ဆက်လက်အသုံးပြုရန် အဆင့်မြှင့်ပါ' : 'Upgrade to continue using all features',
+      );
+    }
+
+    if (sub.isTrialExpiringSoon) {
+      return _buildBanner(
+        context,
+        color: AppColors.warning,
+        icon: Iconsax.clock,
+        title: mm ? 'Trial ${sub.daysRemaining} ရက် ကျန်ပါသေးသည်' : '${sub.daysRemaining} days left in trial',
+        subtitle: mm ? 'အစီအစဉ် ရွေးချယ်ပြီး ဆက်သုံးပါ' : 'Choose a plan to keep access',
+      );
+    }
+
+    if (sub.isFree && sub.daysRemaining > 7) {
+      return _buildBanner(
+        context,
+        color: AppColors.present,
+        icon: Iconsax.gift,
+        title: mm ? 'Free Trial - ${sub.daysRemaining} ရက်ကျန်' : 'Free Trial - ${sub.daysRemaining} days left',
+        subtitle: mm ? '၃၀ ရက် အခမဲ့ သုံးနိုင်ပါသည်' : 'Enjoy 30 days free access',
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildBanner(BuildContext context, {required Color color, required IconData icon, required String title, required String subtitle}) {
+    return GestureDetector(
+      onTap: () => GoRouter.of(context).push('/billing'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color)),
+                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+            ),
+            Icon(Iconsax.arrow_right_3, color: color, size: 18),
+          ],
+        ),
+      ),
+    );
   }
 }
