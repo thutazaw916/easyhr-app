@@ -11,6 +11,7 @@ import {
   FirebasePhoneLoginDto,
   GoogleLoginDto,
   OnboardCompanyDto,
+  AcceptInviteDto,
 } from './dto/auth.dto';
 
 @ApiTags('Authentication')
@@ -79,5 +80,12 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'Company created with 30-day free trial' })
   async onboardCompany(@Body() dto: OnboardCompanyDto) {
     return this.authService.onboardCompany(dto);
+  }
+
+  @Post('accept-invite')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Accept employee invitation and join company' })
+  async acceptInvite(@Body() dto: AcceptInviteDto) {
+    return this.authService.acceptInvite(dto);
   }
 }

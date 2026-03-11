@@ -220,4 +220,95 @@ export class EmployeeService {
     if (error) throw error;
     return updated;
   }
+
+  // ============================================
+  // Invite Employee (generates invite code)
+  // ============================================
+  async inviteEmployee(companyId: string, data: {
+    phone: string;
+    name: string;
+    role?: string;
+    department_id?: string;
+    branch_id?: string;
+    position_id?: string;
+  }) {
+    const db = this.supabaseService.getClient();
+
+    // Check if phone already exists in this company
+    const { data: existing } = await db
+      .from('employees')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('phone', data.phone)
+      .single();
+
+    if (existing) {
+      throw new ConflictException('Employee with this phone already exists');
+    }
+
+    // Check max employees limit
+    const { data: company } = await db
+      .from('companies')
+      .select('max_employees, name')
+      .eq('id', companyId)
+      .single();
+
+    const { count } = await db
+      .from('employees')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .eq('is_active', true);
+
+    if (count >= company.max_employees) {
+      throw new BadRequestException(`Employee limit reached (${company.max_employees}). Upgrade your plan.`);
+    }
+
+    // Generate 6-char invite code
+    const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    // Store invitation
+    const { data: invitation, error } = await db
+      .from('employee_invitations')
+      .insert({
+        company_id: companyId,
+        phone: data.phone,
+        name: data.name,
+        role: data.role || 'employee',
+        department_id: data.department_id || null,
+        branch_id: data.branch_id || null,
+        position_id: data.position_id || null,
+        invite_code: inviteCode,
+        status: 'pending',
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+      })
+      .select()
+      .single();
+
+    if (error) throw new BadRequestException(error.message);
+
+    return {
+      message: `Invitation sent! Share code: ${inviteCode}`,
+      message_mm: `ဖိတ်ကြားချက် ပို့ပြီးပါပြီ! ကုဒ်: ${inviteCode}`,
+      invitation,
+      invite_code: inviteCode,
+      company_name: company.name,
+    };
+  }
+
+  // ============================================
+  // List Pending Invitations
+  // ============================================
+  async listInvitations(companyId: string) {
+    const db = this.supabaseService.getClient();
+
+    const { data, error } = await db
+      .from('employee_invitations')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+    return data || [];
+  }
 }

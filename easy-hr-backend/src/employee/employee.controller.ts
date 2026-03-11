@@ -5,6 +5,7 @@ import { EmployeeService } from './employee.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import { SubscriptionGuard } from '../auth/guards/subscription.guard';
+import { CreateEmployeeDto, UpdateEmployeeDto, UpdateSettingsDto, InviteEmployeeDto } from './dto/employee.dto';
 
 @ApiTags('Employees')
 @Controller('employees')
@@ -20,7 +21,7 @@ export class EmployeeController {
   @Post()
   @Roles('owner', 'hr_manager')
   @ApiOperation({ summary: 'Add new employee (Owner/HR)' })
-  async addEmployee(@Request() req, @Body() data: any) {
+  async addEmployee(@Request() req, @Body() data: CreateEmployeeDto) {
     return this.employeeService.addEmployee(req.user.company_id, data);
   }
 
@@ -45,7 +46,7 @@ export class EmployeeController {
 
   @Put('me/settings')
   @ApiOperation({ summary: 'Update my settings (language, dark mode)' })
-  async updateMySettings(@Request() req, @Body() data: any) {
+  async updateMySettings(@Request() req, @Body() data: UpdateSettingsDto) {
     return this.employeeService.updateMySettings(req.user.id, data);
   }
 
@@ -59,7 +60,7 @@ export class EmployeeController {
   @Put(':id')
   @Roles('owner', 'hr_manager')
   @ApiOperation({ summary: 'Update employee (Owner/HR)' })
-  async updateEmployee(@Request() req, @Param('id') id: string, @Body() data: any) {
+  async updateEmployee(@Request() req, @Param('id') id: string, @Body() data: UpdateEmployeeDto) {
     return this.employeeService.updateEmployee(req.user.company_id, id, data);
   }
 
@@ -68,5 +69,23 @@ export class EmployeeController {
   @ApiOperation({ summary: 'Deactivate employee (Owner/HR)' })
   async deactivateEmployee(@Request() req, @Param('id') id: string) {
     return this.employeeService.deactivateEmployee(req.user.company_id, id);
+  }
+
+  // ============================================
+  // Employee Invitation
+  // ============================================
+
+  @Post('invite')
+  @Roles('owner', 'hr_manager')
+  @ApiOperation({ summary: 'Invite employee via phone (sends SMS/link)' })
+  async inviteEmployee(@Request() req, @Body() data: InviteEmployeeDto) {
+    return this.employeeService.inviteEmployee(req.user.company_id, data);
+  }
+
+  @Get('invitations')
+  @Roles('owner', 'hr_manager')
+  @ApiOperation({ summary: 'List pending invitations' })
+  async listInvitations(@Request() req) {
+    return this.employeeService.listInvitations(req.user.company_id);
   }
 }

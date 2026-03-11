@@ -14,6 +14,7 @@ import {
   FirebasePhoneLoginDto,
   GoogleLoginDto,
   OnboardCompanyDto,
+  AcceptInviteDto,
 } from './dto/auth.dto';
 import * as admin from 'firebase-admin';
 
@@ -746,6 +747,93 @@ export class AuthService {
         days_remaining: 30,
         max_employees: 9,
         is_expired: false,
+      },
+    };
+  }
+
+  // ============================================
+  // 10. Accept Employee Invitation
+  // ============================================
+  async acceptInvite(dto: AcceptInviteDto) {
+    const db = this.supabaseService.getClient();
+
+    // Find invitation by code and phone
+    const { data: invite } = await db
+      .from('employee_invitations')
+      .select('*')
+      .eq('invite_code', dto.invite_code.toUpperCase())
+      .eq('phone', dto.phone)
+      .eq('status', 'pending')
+      .single();
+
+    if (!invite) {
+      throw new BadRequestException('Invalid or expired invitation code');
+    }
+
+    // Check expiry
+    if (new Date(invite.expires_at) < new Date()) {
+      await db.from('employee_invitations').update({ status: 'expired' }).eq('id', invite.id);
+      throw new BadRequestException('Invitation has expired. Ask your employer for a new one.');
+    }
+
+    // Check if employee already exists
+    const { data: existing } = await db
+      .from('employees')
+      .select('id')
+      .eq('company_id', invite.company_id)
+      .eq('phone', dto.phone)
+      .single();
+
+    if (existing) {
+      throw new ConflictException('You are already registered in this company');
+    }
+
+    // Create employee from invitation
+    const nameParts = invite.name.trim().split(' ');
+    const { data: employee, error: empError } = await db
+      .from('employees')
+      .insert({
+        company_id: invite.company_id,
+        first_name: nameParts[0],
+        last_name: nameParts.slice(1).join(' ') || null,
+        phone: dto.phone,
+        role: invite.role || 'employee',
+        department_id: invite.department_id,
+        branch_id: invite.branch_id,
+        position_id: invite.position_id,
+        is_active: true,
+      })
+      .select()
+      .single();
+
+    if (empError) throw new BadRequestException(empError.message);
+
+    // Mark invitation as accepted
+    await db.from('employee_invitations')
+      .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+      .eq('id', invite.id);
+
+    // Get company for token
+    const { data: company } = await db
+      .from('companies')
+      .select('*')
+      .eq('id', invite.company_id)
+      .single();
+
+    // Generate JWT and return login response
+    const token = this.generateToken(employee, company);
+
+    return {
+      message: 'Welcome! You have joined the company.',
+      message_mm: 'ကြိုဆိုပါတယ်! ကုမ္ပဏီသို့ ဝင်ရောက်ပြီးပါပြီ။',
+      access_token: token,
+      user: {
+        id: employee.id,
+        name: invite.name,
+        phone: dto.phone,
+        role: employee.role,
+        company_id: company.id,
+        company_name: company.name,
       },
     };
   }

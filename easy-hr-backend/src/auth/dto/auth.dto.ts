@@ -187,6 +187,21 @@ export class OnboardCompanyDto {
 }
 
 // ============================================
+// Accept Employee Invitation
+// ============================================
+export class AcceptInviteDto {
+  @ApiProperty({ example: 'ABC123' })
+  @IsString()
+  @IsNotEmpty()
+  invite_code: string;
+
+  @ApiProperty({ example: '09123456789' })
+  @IsString()
+  @IsNotEmpty()
+  phone: string;
+}
+
+// ============================================
 // Employee Login - Firebase Phone Auth
 // ============================================
 export class FirebasePhoneLoginDto {

@@ -118,6 +118,24 @@ class ApiService {
     return response.data;
   }
 
+  Future<Map<String, dynamic>> acceptInvite(String inviteCode, String phone) async {
+    final response = await _dio.post('/auth/accept-invite', data: {
+      'invite_code': inviteCode,
+      'phone': phone,
+    });
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> inviteEmployee(Map<String, dynamic> data) async {
+    final response = await _dio.post('/employees/invite', data: data);
+    return response.data;
+  }
+
+  Future<List<dynamic>> listInvitations() async {
+    final response = await _dio.get('/employees/invitations');
+    return response.data;
+  }
+
   // ============================================
   // COMPANY
   // ============================================
