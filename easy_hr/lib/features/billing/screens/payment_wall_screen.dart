@@ -62,7 +62,7 @@ class _PaymentWallScreenState extends ConsumerState<PaymentWallScreen> {
           context: context,
           builder: (ctx) => AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Row(children: [Icon(Icons.check_circle, color: AppColors.present, size: 28), SizedBox(width: 8), Text('တင်ပြီးပါပြီ')]),
+            title: const Row(children: [Icon(Iconsax.tick_circle5, color: AppColors.present, size: 28), SizedBox(width: 8), Text('တင်ပြီးပါပြီ')]),
             content: const Text('ငွေလွှဲ Screenshot တင်ပြီးပါပြီ။\n\nAdmin မှ ၂၄ နာရီအတွင်း စစ်ဆေးပြီး အတည်ပြုပေးပါမည်။'),
             actions: [TextButton(onPressed: () { Navigator.pop(ctx); context.go('/'); }, child: const Text('အိုကေ'))],
           ),
@@ -85,7 +85,7 @@ class _PaymentWallScreenState extends ConsumerState<PaymentWallScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('အစီအစဉ် အဆင့်မြှင့်ရန်'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () {
+        leading: IconButton(icon: const Icon(Iconsax.arrow_left), onPressed: () {
           if (GoRouter.of(context).canPop()) context.pop(); else context.go('/');
         }),
       ),
@@ -144,7 +144,7 @@ class _PaymentWallScreenState extends ConsumerState<PaymentWallScreen> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(children: [
-        Icon(sub?.isExpired == true ? Icons.lock_outline : Icons.info_outline, color: Colors.white, size: 48),
+        Icon(sub?.isExpired == true ? Iconsax.lock : Iconsax.info_circle, color: Colors.white, size: 48),
         const SizedBox(height: 12),
         Text(sub?.isExpired == true ? 'သက်တမ်းကုန်ဆုံးသွားပါပြီ' : 'အခပေးအစီအစဉ် လိုအပ်ပါသည်',
             style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
@@ -179,7 +179,7 @@ class _PaymentWallScreenState extends ConsumerState<PaymentWallScreen> {
           child: Row(children: [
             Container(width: 24, height: 24,
               decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: isSelected ? color : Colors.grey, width: 2), color: isSelected ? color : Colors.transparent),
-              child: isSelected ? const Icon(Icons.check, size: 16, color: Colors.white) : null),
+              child: isSelected ? const Icon(Iconsax.tick_square, size: 16, color: Colors.white) : null),
             const SizedBox(width: 14),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
@@ -188,7 +188,7 @@ class _PaymentWallScreenState extends ConsumerState<PaymentWallScreen> {
               ]),
               Text('${plan['price']} MMK / လ', style: TextStyle(fontSize: 14, color: color, fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
-              ...features.map((f) => Row(children: [Icon(Icons.check_circle, size: 14, color: color), const SizedBox(width: 6), Text(f, style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700))])),
+              ...features.map((f) => Row(children: [Icon(Iconsax.tick_circle5, size: 14, color: color), const SizedBox(width: 6), Text(f, style: TextStyle(fontSize: 12, color: isDark ? Colors.grey.shade300 : Colors.grey.shade700))])),
             ])),
           ]),
         ),
@@ -201,9 +201,9 @@ class _PaymentWallScreenState extends ConsumerState<PaymentWallScreen> {
       width: double.infinity, padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: isDark ? Colors.grey.shade800 : Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _payRow('KBZPay', '09971489502', Icons.phone_android),
-        _payRow('WavePay', '09971489502', Icons.phone_android),
-        _payRow('KBZ Bank', '06651199910919301', Icons.account_balance),
+        _payRow('KBZPay', '09971489502', Iconsax.mobile),
+        _payRow('WavePay', '09971489502', Iconsax.mobile),
+        _payRow('KBZ Bank', '06651199910919301', Iconsax.bank),
       ]),
     );
   }
@@ -214,7 +214,7 @@ class _PaymentWallScreenState extends ConsumerState<PaymentWallScreen> {
       Text('$name: ', style: const TextStyle(fontWeight: FontWeight.w600)),
       Expanded(child: Text(acc, style: const TextStyle(fontFamily: 'monospace', fontSize: 13))),
       GestureDetector(onTap: () { Clipboard.setData(ClipboardData(text: acc)); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$name copied'), duration: const Duration(seconds: 1))); },
-        child: const Icon(Icons.copy, size: 16, color: Colors.grey)),
+        child: const Icon(Iconsax.copy, size: 16, color: Colors.grey)),
     ]));
   }
 
@@ -234,9 +234,9 @@ class _PaymentWallScreenState extends ConsumerState<PaymentWallScreen> {
                 ClipRRect(borderRadius: BorderRadius.circular(13), child: Image.file(_screenshotFile!, width: double.infinity, fit: BoxFit.cover)),
                 Positioned(top: 8, right: 8, child: GestureDetector(
                   onTap: () => setState(() => _screenshotFile = null),
-                  child: Container(padding: const EdgeInsets.all(6), decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle), child: const Icon(Icons.close, color: Colors.white, size: 18)))),
+                  child: Container(padding: const EdgeInsets.all(6), decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle), child: const Icon(Iconsax.close_circle, color: Colors.white, size: 18)))),
                 Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: AppColors.present, borderRadius: BorderRadius.circular(8)),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.check, color: Colors.white, size: 14), SizedBox(width: 4), Text('ရွေးပြီး', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600))]))),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Iconsax.tick_square, color: Colors.white, size: 14), SizedBox(width: 4), Text('ရွေးပြီး', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600))]))),
               ])
             : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(Iconsax.image, size: 40, color: Colors.grey.shade400),

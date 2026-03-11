@@ -383,7 +383,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                                     child: Container(
                                       padding: const EdgeInsets.all(4),
                                       decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                      child: const Icon(Iconsax.close_circle, color: Colors.white, size: 16),
                                     ),
                                   ),
                                 ),

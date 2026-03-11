@@ -186,7 +186,7 @@ class AppStrings {
   static const Map<String, String> _mm = {
     // Navigation
     'nav_home': 'ပင်မ',
-    'nav_attendance': 'တက်ရောက်မှု',
+    'nav_attendance': 'တက်ရောက်',
     'nav_payroll': 'လစာ',
     'nav_leave': 'ခွင့်',
     'nav_profile': 'ပရိုဖိုင်',

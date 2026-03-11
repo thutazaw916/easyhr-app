@@ -92,7 +92,7 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
                 hintText: 'Search by name or employee code...',
                 prefixIcon: const Icon(Iconsax.search_normal_1, size: 20),
                 suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () { _searchController.clear(); setState(() {}); })
+                    ? IconButton(icon: const Icon(Iconsax.close_circle, size: 18), onPressed: () { _searchController.clear(); setState(() {}); })
                     : null,
                 filled: true,
                 fillColor: isDark ? AppColors.darkCard : AppColors.lightCard,

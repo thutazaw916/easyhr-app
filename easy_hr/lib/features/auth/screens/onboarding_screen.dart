@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
 import '../../../core/providers/auth_provider.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -137,7 +138,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 decoration: const InputDecoration(
                   labelText: 'ကုမ္ပဏီအမည် *',
                   hintText: 'e.g. ABC Company',
-                  prefixIcon: Icon(Icons.business),
+                  prefixIcon: Icon(Iconsax.building),
                 ),
                 validator: (v) => v == null || v.trim().isEmpty ? 'ကုမ္ပဏီအမည် ထည့်ပါ' : null,
               ),
@@ -148,7 +149,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 value: _businessType,
                 decoration: const InputDecoration(
                   labelText: 'လုပ်ငန်းအမျိုးအစား *',
-                  prefixIcon: Icon(Icons.category),
+                  prefixIcon: Icon(Iconsax.category),
                 ),
                 items: _businessTypes.map((bt) => DropdownMenuItem(
                   value: bt['value'],
@@ -164,7 +165,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 decoration: const InputDecoration(
                   labelText: 'ပိုင်ရှင်အမည် *',
                   hintText: 'e.g. Aung Aung',
-                  prefixIcon: Icon(Icons.person),
+                  prefixIcon: Icon(Iconsax.user),
                 ),
                 validator: (v) => v == null || v.trim().isEmpty ? 'အမည် ထည့်ပါ' : null,
               ),
@@ -176,7 +177,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 decoration: const InputDecoration(
                   labelText: 'ဖုန်းနံပါတ် *',
                   hintText: '09xxxxxxxxx',
-                  prefixIcon: Icon(Icons.phone),
+                  prefixIcon: Icon(Iconsax.call),
                 ),
                 keyboardType: TextInputType.phone,
                 validator: (v) => v == null || v.trim().isEmpty ? 'ဖုန်းနံပါတ် ထည့်ပါ' : null,
@@ -189,7 +190,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 decoration: const InputDecoration(
                   labelText: 'လိပ်စာ',
                   hintText: 'No. 123, Bogyoke Road',
-                  prefixIcon: Icon(Icons.location_on),
+                  prefixIcon: Icon(Iconsax.location),
                 ),
               ),
               const SizedBox(height: 16),
@@ -200,7 +201,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 decoration: const InputDecoration(
                   labelText: 'မြို့',
                   hintText: 'Yangon',
-                  prefixIcon: Icon(Icons.location_city),
+                  prefixIcon: Icon(Iconsax.buildings),
                 ),
               ),
               const SizedBox(height: 32),

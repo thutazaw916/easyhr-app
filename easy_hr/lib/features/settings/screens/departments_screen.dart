@@ -236,7 +236,7 @@ class _DepartmentsScreenState extends ConsumerState<DepartmentsScreen> {
                       border: selectedColor == c ? Border.all(color: Colors.white, width: 3) : null,
                       boxShadow: selectedColor == c ? [BoxShadow(color: Color(c).withOpacity(0.4), blurRadius: 8)] : null,
                     ),
-                    child: selectedColor == c ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
+                    child: selectedColor == c ? const Icon(Iconsax.tick_square, color: Colors.white, size: 18) : null,
                   ),
                 )).toList(),
               ),
