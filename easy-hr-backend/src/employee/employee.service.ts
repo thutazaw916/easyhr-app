@@ -82,8 +82,8 @@ export class EmployeeService {
       }
     }
 
-    // Map join_date to hire_date if provided
-    const hireDate = data.join_date || data.hire_date;
+    // Use join_date (the actual DB column name)
+    const joinDate = data.join_date || data.hire_date;
 
     // Build insert data — only include non-null fields
     const insertData: Record<string, any> = {
@@ -104,7 +104,7 @@ export class EmployeeService {
     if (data.position) insertData.position = data.position;
     if (data.base_salary) insertData.base_salary = Number(data.base_salary);
     if (data.nrc_number) insertData.nrc_number = data.nrc_number;
-    if (hireDate) insertData.hire_date = hireDate;
+    if (joinDate) insertData.join_date = joinDate;
     if (data.date_of_birth) insertData.date_of_birth = data.date_of_birth;
     if (data.contract_type) insertData.contract_type = data.contract_type;
 
