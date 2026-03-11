@@ -447,6 +447,51 @@ class ApiService {
   }
 
   // ============================================
+  // FILE UPLOAD
+  // ============================================
+
+  Future<String> uploadFile(String filePath, {String folder = 'general'}) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(filePath),
+    });
+    final response = await _dio.post('/upload?folder=$folder', data: formData);
+    return response.data['url'];
+  }
+
+  // ============================================
+  // PROFILE PHOTO
+  // ============================================
+
+  Future<Map<String, dynamic>> updateMyPhoto(String photoUrl) async {
+    final response = await _dio.put('/employees/me/photo', data: {
+      'profile_photo_url': photoUrl,
+    });
+    return response.data;
+  }
+
+  // ============================================
+  // NOTIFICATIONS
+  // ============================================
+
+  Future<List<dynamic>> getNotifications({int limit = 50}) async {
+    final response = await _dio.get('/notifications', queryParameters: {'limit': limit});
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> getUnreadNotificationCount() async {
+    final response = await _dio.get('/notifications/unread-count');
+    return response.data;
+  }
+
+  Future<void> markNotificationsRead() async {
+    await _dio.put('/notifications/read');
+  }
+
+  Future<void> markNotificationRead(String id) async {
+    await _dio.put('/notifications/$id/read');
+  }
+
+  // ============================================
   // TOKEN MANAGEMENT
   // ============================================
 

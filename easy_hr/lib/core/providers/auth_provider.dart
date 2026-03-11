@@ -388,6 +388,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  // Update Profile Photo
+  void updateProfilePhoto(String url) {
+    if (state.user != null) {
+      final updatedUser = UserModel(
+        id: state.user!.id,
+        name: state.user!.name,
+        email: state.user!.email,
+        phone: state.user!.phone,
+        role: state.user!.role,
+        companyId: state.user!.companyId,
+        companyName: state.user!.companyName,
+        profilePhotoUrl: url,
+        language: state.user!.language,
+        darkMode: state.user!.darkMode,
+      );
+      _saveUser(updatedUser);
+      state = state.copyWith(user: updatedUser);
+    }
+  }
+
   // Logout
   Future<void> logout() async {
     await _api.clearToken();

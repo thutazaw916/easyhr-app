@@ -16,6 +16,8 @@ import { SuperAdminModule } from './super-admin/super-admin.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
 import { BillingModule } from './billing/billing.module';
 import { EmailModule } from './email/email.module';
+import { NotificationModule } from './notification/notification.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { EmailModule } from './email/email.module';
     ChatbotModule,
     BillingModule,
     EmailModule,
+    NotificationModule,
+    UploadModule,
   ],
 })
 export class AppModule {}

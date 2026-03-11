@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/api_service.dart';
@@ -373,6 +375,7 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> with SingleTickerProv
     final reasonC = TextEditingController();
     final dateFormat = DateFormat('dd MMM yyyy');
     bool submitting = false;
+    File? attachmentFile;
 
     showModalBottomSheet(
       context: context, isScrollControlled: true,
@@ -448,7 +451,44 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> with SingleTickerProv
 
             // Reason
             TextField(controller: reasonC, maxLines: 3, decoration: InputDecoration(labelText: mm ? 'အကြောင်းပြချက်' : 'Reason', hintText: mm ? 'ခွင့်ယူရသည့် အကြောင်းပြချက်...' : 'Why are you requesting leave...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
+
+            // Attachment (for medical/maternity leave)
+            Builder(builder: (_) {
+              final selectedType = _leaveTypes.firstWhere((lt) => lt['id']?.toString() == selectedTypeId, orElse: () => {});
+              final code = selectedType['code']?.toString();
+              final needsAttachment = code == 'ML' || code == 'MAT' || (selectedType['requires_attachment'] == true);
+              if (!needsAttachment && attachmentFile == null) return const SizedBox.shrink();
+              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(mm ? '📎 ဆေးစာ / စာရွက်စာတမ်း ပူးတွဲပါ' : '📎 Attach Medical Certificate', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: needsAttachment ? AppColors.absent : null)),
+                const SizedBox(height: 8),
+                if (attachmentFile != null)
+                  Stack(children: [
+                    ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(attachmentFile!, height: 120, width: double.infinity, fit: BoxFit.cover)),
+                    Positioned(top: 4, right: 4, child: GestureDetector(onTap: () => setBS(() => attachmentFile = null),
+                      child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle), child: const Icon(Icons.close, size: 16, color: Colors.white)))),
+                  ])
+                else
+                  GestureDetector(
+                    onTap: () async {
+                      final source = await showModalBottomSheet<ImageSource>(context: context, builder: (c) => SafeArea(child: Wrap(children: [
+                        ListTile(leading: const Icon(Iconsax.camera), title: Text(mm ? 'ကင်မရာ' : 'Camera'), onTap: () => Navigator.pop(c, ImageSource.camera)),
+                        ListTile(leading: const Icon(Iconsax.gallery), title: Text(mm ? 'ဓာတ်ပုံ' : 'Gallery'), onTap: () => Navigator.pop(c, ImageSource.gallery)),
+                      ])));
+                      if (source == null) return;
+                      final picked = await ImagePicker().pickImage(source: source, imageQuality: 80, maxWidth: 1200);
+                      if (picked != null) setBS(() => attachmentFile = File(picked.path));
+                    },
+                    child: Container(height: 80, width: double.infinity, decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400, style: BorderStyle.solid), borderRadius: BorderRadius.circular(12)),
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(Iconsax.document_upload, size: 24, color: Colors.grey[500]),
+                        const SizedBox(height: 4),
+                        Text(mm ? 'ပုံထည့်ရန် နှိပ်ပါ' : 'Tap to attach photo', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                      ])),
+                  ),
+                const SizedBox(height: 14),
+              ]);
+            }),
 
             // Submit to API
             SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(
@@ -463,9 +503,21 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> with SingleTickerProv
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mm ? 'အကြောင်းပြချက် ရေးပါ' : 'Please enter a reason'), behavior: SnackBarBehavior.floating));
                   return;
                 }
+                // Check if attachment is required
+                final selectedType = _leaveTypes.firstWhere((lt) => lt['id']?.toString() == selectedTypeId, orElse: () => {});
+                final code = selectedType['code']?.toString();
+                final needsAttachment = code == 'ML' || code == 'MAT' || (selectedType['requires_attachment'] == true);
+                if (needsAttachment && attachmentFile == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mm ? 'ဆေးစာ ပူးတွဲပါ' : 'Please attach medical certificate'), behavior: SnackBarBehavior.floating));
+                  return;
+                }
                 setBS(() => submitting = true);
                 try {
                   final api = ref.read(apiServiceProvider);
+                  String? attachmentUrl;
+                  if (attachmentFile != null) {
+                    attachmentUrl = await api.uploadFile(attachmentFile!.path, folder: 'leave-attachments');
+                  }
                   await api.requestLeave({
                     'leave_type_id': selectedTypeId,
                     'start_date': '${startDate!.year}-${startDate!.month.toString().padLeft(2, '0')}-${startDate!.day.toString().padLeft(2, '0')}',
@@ -473,6 +525,7 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> with SingleTickerProv
                     'reason': reasonC.text.trim(),
                     'is_half_day': isHalfDay,
                     'half_day_period': isHalfDay ? halfDayPeriod : null,
+                    if (attachmentUrl != null) 'attachment_url': attachmentUrl,
                   });
                   if (mounted) {
                     Navigator.pop(ctx);

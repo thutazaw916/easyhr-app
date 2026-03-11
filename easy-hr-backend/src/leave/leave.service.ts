@@ -1,9 +1,13 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class LeaveService {
-  constructor(private supabaseService: SupabaseService) {}
+  constructor(
+    private supabaseService: SupabaseService,
+    private notificationService: NotificationService,
+  ) {}
 
   // ============================================
   // GET LEAVE TYPES (Company's configured leave types)
@@ -62,6 +66,7 @@ export class LeaveService {
     reason?: string;
     is_half_day?: boolean;
     half_day_period?: string;
+    attachment_url?: string;
   }) {
     const db = this.supabaseService.getClient();
 
@@ -112,20 +117,23 @@ export class LeaveService {
     }
 
     // 5. Create request
+    const insertData: Record<string, any> = {
+      employee_id: employeeId,
+      company_id: companyId,
+      leave_type_id: data.leave_type_id,
+      start_date: data.start_date,
+      end_date: data.end_date,
+      total_days: totalDays,
+      reason: data.reason,
+      is_half_day: data.is_half_day || false,
+      half_day_period: data.half_day_period,
+      status: 'pending',
+    };
+    if (data.attachment_url) insertData.attachment_url = data.attachment_url;
+
     const { data: request, error } = await db
       .from('leave_requests')
-      .insert({
-        employee_id: employeeId,
-        company_id: companyId,
-        leave_type_id: data.leave_type_id,
-        start_date: data.start_date,
-        end_date: data.end_date,
-        total_days: totalDays,
-        reason: data.reason,
-        is_half_day: data.is_half_day || false,
-        half_day_period: data.half_day_period,
-        status: 'pending',
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -136,6 +144,30 @@ export class LeaveService {
       .from('leave_balances')
       .update({ pending_days: balance.pending_days + totalDays })
       .eq('id', balance.id);
+
+    // 7. Notify admins
+    try {
+      const { data: employee } = await db
+        .from('employees')
+        .select('first_name, last_name, employee_code')
+        .eq('id', employeeId)
+        .single();
+      const empName = `${employee?.first_name || ''} ${employee?.last_name || ''}`.trim();
+      const typeName = leaveType?.name || '';
+      const typeNameMm = leaveType?.name_mm || typeName;
+
+      await this.notificationService.notifyAdmins(companyId, {
+        sender_id: employeeId,
+        type: 'leave_request',
+        title: `New Leave Request from ${empName}`,
+        title_mm: `${empName} မှ ခွင့်တောင်းဆိုမှု အသစ်`,
+        body: `${typeName}: ${data.start_date} to ${data.end_date} (${totalDays} day${totalDays > 1 ? 's' : ''})`,
+        body_mm: `${typeNameMm}: ${data.start_date} မှ ${data.end_date} (${totalDays} ရက်)`,
+        data: { leave_request_id: request.id, leave_type: typeName },
+      });
+    } catch (e) {
+      console.error('Failed to send leave notification:', e);
+    }
 
     return {
       message: 'Leave request submitted successfully',
@@ -152,16 +184,22 @@ export class LeaveService {
   }) {
     const db = this.supabaseService.getClient();
 
-    // 1. Find request
-    const { data: request } = await db
+    // 1. Find request (first without company filter to debug)
+    const { data: anyRequest } = await db
       .from('leave_requests')
       .select('*')
       .eq('id', requestId)
-      .eq('company_id', companyId)
-      .eq('status', 'pending')
       .single();
 
-    if (!request) throw new NotFoundException('Leave request not found or already processed');
+    if (!anyRequest) throw new NotFoundException('Leave request not found');
+    if (anyRequest.company_id !== companyId) {
+      throw new NotFoundException(`Leave request belongs to a different company`);
+    }
+    if (anyRequest.status !== 'pending') {
+      throw new BadRequestException(`Leave request already ${anyRequest.status}`);
+    }
+
+    const request = anyRequest;
 
     // 2. Update request status
     const { data: updated, error } = await db
@@ -200,6 +238,39 @@ export class LeaveService {
           pending_days: Math.max(0, balance.pending_days - request.total_days),
         }).eq('id', balance.id);
       }
+    }
+
+    // 4. Notify employee about approval/rejection
+    try {
+      const { data: approver } = await db
+        .from('employees')
+        .select('first_name, last_name')
+        .eq('id', approverId)
+        .single();
+      const approverName = `${approver?.first_name || ''} ${approver?.last_name || ''}`.trim();
+
+      const { data: leaveType } = await db
+        .from('leave_types')
+        .select('name, name_mm')
+        .eq('id', request.leave_type_id)
+        .single();
+      const typeName = leaveType?.name || '';
+      const typeNameMm = leaveType?.name_mm || typeName;
+
+      const isApproved = data.status === 'approved';
+      await this.notificationService.create({
+        company_id: companyId,
+        recipient_id: request.employee_id,
+        sender_id: approverId,
+        type: isApproved ? 'leave_approved' : 'leave_rejected',
+        title: isApproved ? `Leave Approved by ${approverName}` : `Leave Rejected by ${approverName}`,
+        title_mm: isApproved ? `${approverName} မှ ခွင့်ခွင့်ပြုပြီး` : `${approverName} မှ ခွင့်ပယ်ချပြီး`,
+        body: `${typeName}: ${request.start_date} to ${request.end_date}${data.rejection_reason ? '. Reason: ' + data.rejection_reason : ''}`,
+        body_mm: `${typeNameMm}: ${request.start_date} မှ ${request.end_date}${data.rejection_reason ? '. အကြောင်းပြချက်: ' + data.rejection_reason : ''}`,
+        data: { leave_request_id: requestId, status: data.status },
+      });
+    } catch (e) {
+      console.error('Failed to notify employee:', e);
     }
 
     return {

@@ -50,8 +50,14 @@ export const getDailyReport = (date?: string) => api.get('/attendance/daily', { 
 // Leave
 export const getLeaveTypes = () => api.get('/leave/types');
 export const getPendingLeaves = () => api.get('/leave/pending');
-export const approveLeave = (id: string) => api.put(`/leave/${id}/approve`);
-export const rejectLeave = (id: string, reason: string) => api.put(`/leave/${id}/reject`, { rejection_reason: reason });
+export const approveLeave = (id: string) => api.put(`/leave/requests/${id}/approve`);
+export const rejectLeave = (id: string, reason: string) => api.put(`/leave/requests/${id}/reject`, { rejection_reason: reason });
+
+// Notifications
+export const getNotifications = (limit = 50) => api.get('/notifications', { params: { limit } });
+export const getUnreadCount = () => api.get('/notifications/unread-count');
+export const markAllNotificationsRead = () => api.put('/notifications/read');
+export const markNotificationRead = (id: string) => api.put(`/notifications/${id}/read`);
 
 // Payroll
 export const getMonthlyPayroll = (year: number, month: number) => api.get('/payroll/monthly', { params: { year, month } });

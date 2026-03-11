@@ -214,6 +214,7 @@ export class EmployeeService {
       'department_id', 'position_id', 'branch_id', 'role',
       'gender', 'position', 'employee_code', 'nrc_number',
       'join_date', 'date_of_birth', 'contract_type', 'is_active',
+      'profile_photo_url',
     ];
     for (const key of allowedFields) {
       if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
@@ -270,6 +271,21 @@ export class EmployeeService {
 
     if (error) throw new NotFoundException('Profile not found');
     return data;
+  }
+
+  // ============================================
+  // Update My Profile Photo
+  // ============================================
+  async updateMyPhoto(employeeId: string, profilePhotoUrl: string) {
+    const db = this.supabaseService.getClient();
+    const { data: updated, error } = await db
+      .from('employees')
+      .update({ profile_photo_url: profilePhotoUrl })
+      .eq('id', employeeId)
+      .select('id, profile_photo_url')
+      .single();
+    if (error) throw error;
+    return updated;
   }
 
   // ============================================

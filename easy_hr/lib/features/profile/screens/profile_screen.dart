@@ -1,17 +1,69 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/localization/app_strings.dart';
 import '../../settings/screens/notification_settings_screen.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _uploadingPhoto = false;
+
+  Future<void> _pickAndUploadPhoto() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (c) => SafeArea(child: Wrap(children: [
+        ListTile(leading: const Icon(Iconsax.camera), title: const Text('Camera'), onTap: () => Navigator.pop(c, ImageSource.camera)),
+        ListTile(leading: const Icon(Iconsax.gallery), title: const Text('Gallery'), onTap: () => Navigator.pop(c, ImageSource.gallery)),
+      ])),
+    );
+    if (source == null) return;
+
+    final picked = await ImagePicker().pickImage(source: source, imageQuality: 80, maxWidth: 800);
+    if (picked == null) return;
+
+    setState(() => _uploadingPhoto = true);
+    try {
+      final api = ref.read(apiServiceProvider);
+      final url = await api.uploadFile(picked.path, folder: 'profile-photos');
+      await api.updateMyPhoto(url);
+      ref.read(authProvider.notifier).updateProfilePhoto(url);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Profile photo updated!'), backgroundColor: AppColors.present, behavior: SnackBarBehavior.floating));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ $e'), backgroundColor: AppColors.absent, behavior: SnackBarBehavior.floating));
+      }
+    }
+    if (mounted) setState(() => _uploadingPhoto = false);
+  }
+
+  Widget _defaultAvatar(String? name, String? gender, double radius) {
+    final isMale = gender?.toLowerCase() != 'female';
+    final bgColor = isMale ? const Color(0xFF6366F1) : const Color(0xFFF472B6);
+    final icon = isMale ? Iconsax.man : Iconsax.woman;
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: bgColor.withOpacity(0.15),
+      child: Icon(icon, size: radius * 0.9, color: bgColor),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = ref.watch(authProvider).user;
     final lang = ref.watch(languageProvider);
@@ -28,15 +80,31 @@ class ProfileScreen extends ConsumerWidget {
             children: [
               const SizedBox(height: 16),
 
-              // Avatar
-              CircleAvatar(
-                radius: 48,
-                backgroundColor: AppColors.primary.withOpacity(0.1),
-                backgroundImage: user?.profilePhotoUrl != null ? NetworkImage(user!.profilePhotoUrl!) : null,
-                child: user?.profilePhotoUrl == null
-                    ? Text(user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : '?',
-                        style: const TextStyle(fontSize: 36, color: AppColors.primary, fontWeight: FontWeight.bold))
-                    : null,
+              // Avatar with photo upload
+              GestureDetector(
+                onTap: _uploadingPhoto ? null : _pickAndUploadPhoto,
+                child: Stack(
+                  children: [
+                    if (user?.profilePhotoUrl != null && user!.profilePhotoUrl!.isNotEmpty)
+                      CircleAvatar(
+                        radius: 48,
+                        backgroundColor: AppColors.primary.withOpacity(0.1),
+                        backgroundImage: NetworkImage(user!.profilePhotoUrl!),
+                      )
+                    else
+                      _defaultAvatar(user?.name, null, 48),
+                    Positioned(
+                      bottom: 0, right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(color: AppColors.primary, shape: BoxShape.circle, border: Border.all(color: isDark ? AppColors.darkBg : Colors.white, width: 2)),
+                        child: _uploadingPhoto
+                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Iconsax.camera, size: 14, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               Text(user?.name ?? 'User', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),

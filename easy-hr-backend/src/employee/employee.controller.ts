@@ -44,6 +44,12 @@ export class EmployeeController {
     return this.employeeService.getMyProfile(req.user.id);
   }
 
+  @Put('me/photo')
+  @ApiOperation({ summary: 'Update my profile photo' })
+  async updateMyPhoto(@Request() req, @Body() data: { profile_photo_url: string }) {
+    return this.employeeService.updateMyPhoto(req.user.id, data.profile_photo_url);
+  }
+
   @Put('me/settings')
   @ApiOperation({ summary: 'Update my settings (language, dark mode)' })
   async updateMySettings(@Request() req, @Body() data: UpdateSettingsDto) {
