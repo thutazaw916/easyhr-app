@@ -1,7 +1,7 @@
 name: easy_hr
 description: Easy HR - Myanmar SME HR Management App
 publish_to: 'none'
-version: 1.0.8+10
+version: 1.0.9+11
 
 environment:
   sdk: ^3.6.0
