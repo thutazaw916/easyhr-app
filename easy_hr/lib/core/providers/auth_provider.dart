@@ -348,6 +348,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return digest.toString();
   }
 
+  // Accept Employee Invitation
+  Future<bool> acceptInvite(String inviteCode, String phone) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final response = await _api.acceptInvite(inviteCode, phone);
+      await _api.saveToken(response['access_token']);
+      final user = UserModel.fromJson(response['user']);
+      final sub = response['subscription'] != null
+          ? SubscriptionModel.fromJson(response['subscription'])
+          : SubscriptionModel();
+      await _saveUser(user);
+      await _saveSubscription(sub);
+      state = state.copyWith(user: user, subscription: sub, isAuthenticated: true, isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _getErrorMessage(e));
+      return false;
+    }
+  }
+
   // Onboard Company (after Google login, new user)
   Future<bool> onboardCompany(Map<String, dynamic> data) async {
     state = state.copyWith(isLoading: true, error: null);

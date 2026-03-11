@@ -14,6 +14,8 @@ import '../../features/chatbot/screens/ai_chatbot_screen.dart';
 import '../../features/billing/screens/subscription_screen.dart';
 import '../../features/billing/screens/payment_wall_screen.dart';
 import '../../features/auth/screens/onboarding_screen.dart';
+import '../../features/auth/screens/accept_invite_screen.dart';
+import '../../features/admin/screens/invite_employee_screen.dart';
 import '../../features/announcement/screens/announcement_screen.dart';
 import '../../features/calendar/screens/calendar_screen.dart';
 import '../../features/admin/screens/admin_dashboard_screen.dart';
@@ -48,7 +50,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/employee-login' ||
           state.matchedLocation == '/signup' ||
-          state.matchedLocation == '/onboarding';
+          state.matchedLocation == '/onboarding' ||
+          state.matchedLocation == '/accept-invite';
 
       if (!isAuth && !isAuthRoute) return '/login';
       if (isAuth && isAuthRoute) return '/';
@@ -84,6 +87,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/admin/employees/add', builder: (context, state) => const AddEmployeeScreen()),
       GoRoute(path: '/admin/attendance-report', builder: (context, state) => const AttendanceReportScreen()),
       GoRoute(path: '/admin/qr-code', builder: (context, state) => const QrCodeScreen()),
+      GoRoute(path: '/admin/invite', builder: (context, state) => const InviteEmployeeScreen()),
+      GoRoute(path: '/accept-invite', builder: (context, state) => const AcceptInviteScreen()),
 
       // Payroll Sub Routes
       GoRoute(path: '/payroll/advance', builder: (context, state) => const SalaryAdvanceScreen()),

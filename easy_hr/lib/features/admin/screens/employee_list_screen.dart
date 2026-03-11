@@ -64,6 +64,14 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
         title: const Text('Employees'),
         actions: [
           IconButton(
+            icon: const Icon(Iconsax.send_1),
+            tooltip: 'Invite Employee',
+            onPressed: () async {
+              final result = await context.push('/admin/invite');
+              if (result == true) _loadEmployees();
+            },
+          ),
+          IconButton(
             icon: const Icon(Iconsax.user_add),
             onPressed: () async {
               final result = await context.push('/admin/employees/add');

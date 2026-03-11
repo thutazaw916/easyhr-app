@@ -284,6 +284,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                   ),
                 ),
 
+                const SizedBox(height: 12),
+
+                // Join with invite code
+                Center(
+                  child: GestureDetector(
+                    onTap: () => context.push('/accept-invite'),
+                    child: const Text(
+                      'Have an invite code? Join here',
+                      style: TextStyle(color: AppColors.info, fontWeight: FontWeight.w500, fontSize: 14),
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 40),
               ],
             ),
