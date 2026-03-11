@@ -20,8 +20,14 @@ export class EmployeeService {
     branch_id?: string;
     role?: string;
     join_date?: string;
+    hire_date?: string;
     contract_type?: string;
     gender?: string;
+    position?: string;
+    employee_code?: string;
+    base_salary?: number;
+    nrc_number?: string;
+    date_of_birth?: string;
   }) {
     const db = this.supabaseService.getClient();
 
@@ -56,16 +62,51 @@ export class EmployeeService {
       );
     }
 
+    // Auto-generate employee code if not provided
+    let employeeCode = data.employee_code;
+    if (!employeeCode) {
+      const nextNum = (currentCount || 0) + 1;
+      employeeCode = `EMP-${String(nextNum).padStart(3, '0')}`;
+      // Check uniqueness and increment if needed
+      let codeExists = true;
+      let attempt = nextNum;
+      while (codeExists) {
+        const { data: codeCheck } = await db
+          .from('employees')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('employee_code', employeeCode)
+          .single();
+        if (!codeCheck) { codeExists = false; }
+        else { attempt++; employeeCode = `EMP-${String(attempt).padStart(3, '0')}`; }
+      }
+    }
+
+    // Map join_date to hire_date if provided
+    const hireDate = data.join_date || data.hire_date;
+
     // Create employee
     const employee = await this.supabaseService.create('employees', {
       company_id: companyId,
-      ...data,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      name_mm: data.name_mm,
+      phone: data.phone,
+      email: data.email,
+      department_id: data.department_id,
+      position_id: data.position_id,
+      branch_id: data.branch_id,
       role: data.role || 'employee',
+      gender: data.gender,
+      position: data.position,
+      employee_code: employeeCode,
+      base_salary: data.base_salary ? Number(data.base_salary) : null,
+      nrc_number: data.nrc_number,
+      hire_date: hireDate,
+      date_of_birth: data.date_of_birth,
+      contract_type: data.contract_type,
       is_active: true,
     });
-
-    // If role is hr_manager, also create auth_credentials
-    // HR will set their own password via a separate endpoint
 
     return {
       message: 'Employee added successfully',

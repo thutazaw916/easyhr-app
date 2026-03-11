@@ -38,7 +38,7 @@ export class SubscriptionGuard implements CanActivate {
     // Fetch company subscription info
     const { data: company } = await db
       .from('companies')
-      .select('id, subscription_plan, subscription_status, subscription_start, subscription_end, max_employees, is_suspended')
+      .select('id, email, subscription_plan, subscription_status, subscription_start, subscription_end, max_employees, is_suspended')
       .eq('id', user.company_id)
       .single();
 
@@ -51,6 +51,34 @@ export class SubscriptionGuard implements CanActivate {
         },
         HttpStatus.FORBIDDEN,
       );
+    }
+
+    // Check if company email is whitelisted — bypass all subscription checks
+    const { data: whitelistSetting } = await db
+      .from('platform_settings')
+      .select('value')
+      .eq('key', 'whitelist_enabled')
+      .single();
+
+    if (whitelistSetting?.value === 'true') {
+      const companyEmail = company.email || '';
+      const { data: whitelisted } = await db
+        .from('email_whitelist')
+        .select('id')
+        .eq('email', companyEmail.toLowerCase())
+        .single();
+
+      if (whitelisted) {
+        // Whitelisted company — full access, no subscription check
+        request.subscription = {
+          plan: 'enterprise',
+          status: 'active',
+          expires: null,
+          maxEmployees: 9999,
+          whitelisted: true,
+        };
+        return true;
+      }
     }
 
     // Check if company is suspended

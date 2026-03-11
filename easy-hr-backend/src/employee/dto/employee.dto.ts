@@ -60,6 +60,36 @@ export class CreateEmployeeDto {
   @IsString()
   @IsOptional()
   nrc_number?: string;
+
+  @ApiProperty({ example: 'male', required: false, enum: ['male', 'female'] })
+  @IsString()
+  @IsOptional()
+  gender?: string;
+
+  @ApiProperty({ example: 'Sales', required: false, description: 'Job title / position name' })
+  @IsString()
+  @IsOptional()
+  position?: string;
+
+  @ApiProperty({ example: '2026-03-01', required: false })
+  @IsString()
+  @IsOptional()
+  join_date?: string;
+
+  @ApiProperty({ example: 'EMP-001', required: false, description: 'Auto-generated if empty' })
+  @IsString()
+  @IsOptional()
+  employee_code?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  name_mm?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  contract_type?: string;
 }
 
 export class UpdateEmployeeDto {
@@ -121,6 +151,41 @@ export class UpdateEmployeeDto {
   @IsString()
   @IsOptional()
   nrc_number?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  gender?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  position?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  join_date?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  employee_code?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  name_mm?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  contract_type?: string;
+
+  @ApiProperty({ required: false })
+  @IsBoolean()
+  @IsOptional()
+  is_active?: boolean;
 }
 
 export class UpdateSettingsDto {
