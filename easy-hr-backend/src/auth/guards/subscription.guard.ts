@@ -58,7 +58,7 @@ export class SubscriptionGuard implements CanActivate {
       .from('platform_settings')
       .select('value')
       .eq('key', 'whitelist_enabled')
-      .single();
+      .maybeSingle();
 
     if (whitelistSetting?.value === 'true') {
       const companyEmail = company.email || '';
@@ -66,7 +66,7 @@ export class SubscriptionGuard implements CanActivate {
         .from('email_whitelist')
         .select('id')
         .eq('email', companyEmail.toLowerCase())
-        .single();
+        .maybeSingle();
 
       if (whitelisted) {
         // Whitelisted company — full access, no subscription check

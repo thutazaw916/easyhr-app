@@ -310,12 +310,8 @@ export class AuthService {
     // Generate JWT
     const token = this.generateToken(employee, company);
 
-    // Calculate subscription info
-    const now = new Date();
-    const subEnd = company.subscription_end ? new Date(company.subscription_end) : null;
-    const daysLeft = subEnd
-      ? Math.max(0, Math.ceil((subEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-      : 0;
+    // Calculate subscription info (with whitelist bypass)
+    const subscription = await this._getSubscriptionInfo(company);
 
     return {
       access_token: token,
@@ -331,14 +327,7 @@ export class AuthService {
         language: employee.language,
         dark_mode: employee.dark_mode,
       },
-      subscription: {
-        plan: company.subscription_plan || 'free',
-        status: company.subscription_status || 'active',
-        expires: company.subscription_end,
-        days_remaining: daysLeft,
-        max_employees: company.max_employees || 9,
-        is_expired: subEnd ? subEnd < now : false,
-      },
+      subscription,
     };
   }
 
@@ -532,12 +521,8 @@ export class AuthService {
     // Generate JWT
     const token = this.generateToken(employee, company);
 
-    // Calculate subscription info
-    const now = new Date();
-    const subscriptionEnd = company.subscription_end ? new Date(company.subscription_end) : null;
-    const daysLeft = subscriptionEnd
-      ? Math.max(0, Math.ceil((subscriptionEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-      : 0;
+    // Calculate subscription info (with whitelist bypass)
+    const subscription = await this._getSubscriptionInfo(company);
 
     return {
       access_token: token,
@@ -556,14 +541,7 @@ export class AuthService {
         language: employee.language,
         dark_mode: employee.dark_mode,
       },
-      subscription: {
-        plan: company.subscription_plan || 'free',
-        status: company.subscription_status || 'active',
-        expires: company.subscription_end,
-        days_remaining: daysLeft,
-        max_employees: company.max_employees || 9,
-        is_expired: subscriptionEnd ? subscriptionEnd < now : false,
-      },
+      subscription,
     };
   }
 
@@ -900,6 +878,57 @@ export class AuthService {
         company_id: company.id,
         company_name: company.name,
       },
+    };
+  }
+
+  // ============================================
+  // Helper: Get subscription info with whitelist bypass
+  // ============================================
+  private async _getSubscriptionInfo(company: any) {
+    const db = this.supabaseService.getClient();
+
+    // Check whitelist bypass
+    const { data: whitelistSetting } = await db
+      .from('platform_settings')
+      .select('value')
+      .eq('key', 'whitelist_enabled')
+      .maybeSingle();
+
+    if (whitelistSetting?.value === 'true') {
+      const companyEmail = (company.email || '').toLowerCase();
+      const { data: whitelisted } = await db
+        .from('email_whitelist')
+        .select('id')
+        .eq('email', companyEmail)
+        .maybeSingle();
+
+      if (whitelisted) {
+        return {
+          plan: 'enterprise',
+          status: 'active',
+          expires: null,
+          days_remaining: 99999,
+          max_employees: 9999,
+          is_expired: false,
+          whitelisted: true,
+        };
+      }
+    }
+
+    // Normal subscription info
+    const now = new Date();
+    const subEnd = company.subscription_end ? new Date(company.subscription_end) : null;
+    const daysLeft = subEnd
+      ? Math.max(0, Math.ceil((subEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+
+    return {
+      plan: company.subscription_plan || 'free',
+      status: company.subscription_status || 'active',
+      expires: company.subscription_end,
+      days_remaining: daysLeft,
+      max_employees: company.max_employees || 9,
+      is_expired: subEnd ? subEnd < now : false,
     };
   }
 

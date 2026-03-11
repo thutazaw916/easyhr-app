@@ -75,7 +75,7 @@ export default function WhitelistPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Email Whitelist</h1>
-          <p className="text-sm text-[#8E8E93] mt-1">Control which emails can register as companies</p>
+          <p className="text-sm text-[#8E8E93] mt-1">Whitelisted company emails get ALL features FREE with no time limit</p>
         </div>
         <button
           onClick={handleToggle}
