@@ -639,6 +639,125 @@ export class PayrollService {
   }
 
   // ============================================
+  // CUSTOM SALARY COMPONENTS CRUD
+  // ============================================
+
+  async getSalaryComponents(companyId: string) {
+    const db = this.supabaseService.getClient();
+    const { data, error } = await db
+      .from('salary_components')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  }
+
+  async createSalaryComponent(companyId: string, dto: any) {
+    const db = this.supabaseService.getClient();
+    const { data, error } = await db
+      .from('salary_components')
+      .insert({
+        company_id: companyId,
+        name: dto.name,
+        name_mm: dto.name_mm || null,
+        type: dto.type,
+        category: dto.category || 'allowance',
+        is_percentage: dto.is_percentage || false,
+        default_value: dto.default_value || 0,
+        is_taxable: dto.is_taxable !== undefined ? dto.is_taxable : true,
+        sort_order: dto.sort_order || 0,
+      })
+      .select()
+      .single();
+    if (error) throw new BadRequestException(error.message);
+    return data;
+  }
+
+  async updateSalaryComponent(companyId: string, componentId: string, dto: any) {
+    const db = this.supabaseService.getClient();
+    const { data, error } = await db
+      .from('salary_components')
+      .update(dto)
+      .eq('id', componentId)
+      .eq('company_id', companyId)
+      .select()
+      .single();
+    if (error) throw new BadRequestException(error.message);
+    return data;
+  }
+
+  async deleteSalaryComponent(companyId: string, componentId: string) {
+    const db = this.supabaseService.getClient();
+    const { error } = await db
+      .from('salary_components')
+      .delete()
+      .eq('id', componentId)
+      .eq('company_id', companyId);
+    if (error) throw new BadRequestException(error.message);
+    return { message: 'Component deleted' };
+  }
+
+  // Set component value for specific employee
+  async setEmployeeComponent(companyId: string, employeeId: string, componentId: string, value: number) {
+    const db = this.supabaseService.getClient();
+
+    // Verify employee belongs to company
+    const { data: emp } = await db.from('employees').select('id').eq('id', employeeId).eq('company_id', companyId).single();
+    if (!emp) throw new NotFoundException('Employee not found');
+
+    // Upsert
+    const { data: existing } = await db
+      .from('employee_salary_components')
+      .select('id')
+      .eq('employee_id', employeeId)
+      .eq('component_id', componentId)
+      .single();
+
+    if (existing) {
+      const { data, error } = await db
+        .from('employee_salary_components')
+        .update({ value, is_active: true })
+        .eq('id', existing.id)
+        .select()
+        .single();
+      if (error) throw new BadRequestException(error.message);
+      return data;
+    } else {
+      const { data, error } = await db
+        .from('employee_salary_components')
+        .insert({ employee_id: employeeId, component_id: componentId, value })
+        .select()
+        .single();
+      if (error) throw new BadRequestException(error.message);
+      return data;
+    }
+  }
+
+  // Get employee's custom component values
+  async getEmployeeComponents(companyId: string, employeeId: string) {
+    const db = this.supabaseService.getClient();
+
+    // Get all company components
+    const components = await this.getSalaryComponents(companyId);
+
+    // Get employee overrides
+    const { data: overrides } = await db
+      .from('employee_salary_components')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .eq('is_active', true);
+
+    const overrideMap = new Map((overrides || []).map(o => [o.component_id, o.value]));
+
+    return components.filter(c => c.is_active).map(c => ({
+      ...c,
+      value: overrideMap.has(c.id) ? overrideMap.get(c.id) : c.default_value,
+      is_overridden: overrideMap.has(c.id),
+    }));
+  }
+
+  // ============================================
   // HELPERS
   // ============================================
 

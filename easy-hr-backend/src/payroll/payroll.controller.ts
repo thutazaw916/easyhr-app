@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { CreateSalaryComponentDto, UpdateSalaryComponentDto, SetEmployeeComponentDto } from './dto/payroll.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { PayrollService } from './payroll.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -150,5 +151,51 @@ export class PayrollController {
   @ApiQuery({ name: 'month', required: true })
   async getMyPayslip(@Request() req, @Query('year') year: number, @Query('month') month: number) {
     return this.payrollService.getMyPayslip(req.user.id, Number(year), Number(month));
+  }
+
+  // ============================================
+  // Custom Salary Components
+  // ============================================
+
+  @Get('components')
+  @Roles('owner', 'hr_manager')
+  @ApiOperation({ summary: 'Get company salary components' })
+  async getSalaryComponents(@Request() req) {
+    return this.payrollService.getSalaryComponents(req.user.company_id);
+  }
+
+  @Post('components')
+  @Roles('owner', 'hr_manager')
+  @ApiOperation({ summary: 'Create salary component' })
+  async createSalaryComponent(@Request() req, @Body() dto: CreateSalaryComponentDto) {
+    return this.payrollService.createSalaryComponent(req.user.company_id, dto);
+  }
+
+  @Put('components/:id')
+  @Roles('owner', 'hr_manager')
+  @ApiOperation({ summary: 'Update salary component' })
+  async updateSalaryComponent(@Request() req, @Param('id') id: string, @Body() dto: UpdateSalaryComponentDto) {
+    return this.payrollService.updateSalaryComponent(req.user.company_id, id, dto);
+  }
+
+  @Delete('components/:id')
+  @Roles('owner', 'hr_manager')
+  @ApiOperation({ summary: 'Delete salary component' })
+  async deleteSalaryComponent(@Request() req, @Param('id') id: string) {
+    return this.payrollService.deleteSalaryComponent(req.user.company_id, id);
+  }
+
+  @Get('components/employee/:employeeId')
+  @Roles('owner', 'hr_manager')
+  @ApiOperation({ summary: 'Get employee salary components with values' })
+  async getEmployeeComponents(@Request() req, @Param('employeeId') employeeId: string) {
+    return this.payrollService.getEmployeeComponents(req.user.company_id, employeeId);
+  }
+
+  @Post('components/employee/:employeeId')
+  @Roles('owner', 'hr_manager')
+  @ApiOperation({ summary: 'Set employee salary component value' })
+  async setEmployeeComponent(@Request() req, @Param('employeeId') employeeId: string, @Body() dto: SetEmployeeComponentDto) {
+    return this.payrollService.setEmployeeComponent(req.user.company_id, employeeId, dto.component_id, dto.value);
   }
 }

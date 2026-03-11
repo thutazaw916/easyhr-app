@@ -322,6 +322,42 @@ class ApiService {
   }
 
   // ============================================
+  // SALARY COMPONENTS
+  // ============================================
+
+  Future<List<dynamic>> getSalaryComponents() async {
+    final response = await _dio.get('/payroll/components');
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> createSalaryComponent(Map<String, dynamic> data) async {
+    final response = await _dio.post('/payroll/components', data: data);
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> updateSalaryComponent(String id, Map<String, dynamic> data) async {
+    final response = await _dio.put('/payroll/components/$id', data: data);
+    return response.data;
+  }
+
+  Future<void> deleteSalaryComponent(String id) async {
+    await _dio.delete('/payroll/components/$id');
+  }
+
+  Future<List<dynamic>> getEmployeeComponents(String employeeId) async {
+    final response = await _dio.get('/payroll/components/employee/$employeeId');
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> setEmployeeComponent(String employeeId, String componentId, num value) async {
+    final response = await _dio.post('/payroll/components/employee/$employeeId', data: {
+      'component_id': componentId,
+      'value': value,
+    });
+    return response.data;
+  }
+
+  // ============================================
   // DEPARTMENTS / BRANCHES
   // ============================================
 
