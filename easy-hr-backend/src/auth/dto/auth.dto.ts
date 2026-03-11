@@ -132,6 +132,61 @@ export class VerifyOtpDto {
 }
 
 // ============================================
+// Google Social Login
+// ============================================
+export class GoogleLoginDto {
+  @ApiProperty({ example: 'eyJhbGciOiJSUzI1NiIs...' })
+  @IsString()
+  @IsNotEmpty()
+  id_token: string;
+}
+
+// ============================================
+// Company Onboarding (after social login, new user)
+// ============================================
+export class OnboardCompanyDto {
+  @ApiProperty({ example: 'eyJhbGciOiJSUzI1NiIs...' })
+  @IsString()
+  @IsNotEmpty()
+  id_token: string;
+
+  @ApiProperty({ example: 'ABC Company' })
+  @IsString()
+  @IsNotEmpty()
+  company_name: string;
+
+  @ApiProperty({ example: 'ABC ကုမ္ပဏီ', required: false })
+  @IsString()
+  @IsOptional()
+  company_name_mm?: string;
+
+  @ApiProperty({ example: 'retail' })
+  @IsString()
+  @IsNotEmpty()
+  business_type: string;
+
+  @ApiProperty({ example: '09123456789' })
+  @IsString()
+  @IsNotEmpty()
+  phone: string;
+
+  @ApiProperty({ example: 'No. 123, Bogyoke Road', required: false })
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @ApiProperty({ example: 'Yangon', required: false })
+  @IsString()
+  @IsOptional()
+  city?: string;
+
+  @ApiProperty({ example: 'Owner Name' })
+  @IsString()
+  @IsNotEmpty()
+  owner_name: string;
+}
+
+// ============================================
 // Employee Login - Firebase Phone Auth
 // ============================================
 export class FirebasePhoneLoginDto {

@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../services/api_service.dart';
 
 // ============================================
@@ -217,6 +219,69 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final response = await _api.firebasePhoneLogin(firebaseIdToken, phone);
+      await _api.saveToken(response['access_token']);
+      final user = UserModel.fromJson(response['user']);
+      final sub = response['subscription'] != null
+          ? SubscriptionModel.fromJson(response['subscription'])
+          : SubscriptionModel();
+      await _saveUser(user);
+      await _saveSubscription(sub);
+      state = state.copyWith(user: user, subscription: sub, isAuthenticated: true, isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _getErrorMessage(e));
+      return false;
+    }
+  }
+
+  // Google Sign-In
+  Future<Map<String, dynamic>?> googleSignIn() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final googleUser = await GoogleSignIn(scopes: ['email']).signIn();
+      if (googleUser == null) {
+        state = state.copyWith(isLoading: false);
+        return null; // User cancelled
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final credential = fb.GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await fb.FirebaseAuth.instance.signInWithCredential(credential);
+      final idToken = await userCredential.user?.getIdToken();
+      if (idToken == null) throw Exception('Failed to get Firebase ID token');
+
+      final response = await _api.googleLogin(idToken);
+
+      if (response['needs_onboarding'] == true) {
+        state = state.copyWith(isLoading: false);
+        return response; // Return to UI for onboarding
+      }
+
+      // Existing user — login success
+      await _api.saveToken(response['access_token']);
+      final user = UserModel.fromJson(response['user']);
+      final sub = response['subscription'] != null
+          ? SubscriptionModel.fromJson(response['subscription'])
+          : SubscriptionModel();
+      await _saveUser(user);
+      await _saveSubscription(sub);
+      state = state.copyWith(user: user, subscription: sub, isAuthenticated: true, isLoading: false);
+      return response;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _getErrorMessage(e));
+      return null;
+    }
+  }
+
+  // Onboard Company (after Google login, new user)
+  Future<bool> onboardCompany(Map<String, dynamic> data) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final response = await _api.onboardCompany(data);
       await _api.saveToken(response['access_token']);
       final user = UserModel.fromJson(response['user']);
       final sub = response['subscription'] != null

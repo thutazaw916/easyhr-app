@@ -13,6 +13,7 @@ import '../../features/chat/screens/chat_screen.dart';
 import '../../features/chatbot/screens/ai_chatbot_screen.dart';
 import '../../features/billing/screens/subscription_screen.dart';
 import '../../features/billing/screens/payment_wall_screen.dart';
+import '../../features/auth/screens/onboarding_screen.dart';
 import '../../features/announcement/screens/announcement_screen.dart';
 import '../../features/calendar/screens/calendar_screen.dart';
 import '../../features/admin/screens/admin_dashboard_screen.dart';
@@ -46,7 +47,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuth = auth.isAuthenticated;
       final isAuthRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/employee-login' ||
-          state.matchedLocation == '/signup';
+          state.matchedLocation == '/signup' ||
+          state.matchedLocation == '/onboarding';
 
       if (!isAuth && !isAuthRoute) return '/login';
       if (isAuth && isAuthRoute) return '/';
@@ -95,6 +97,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/payment-wall', builder: (context, state) {
         final reason = state.uri.queryParameters['reason'];
         return PaymentWallScreen(reason: reason);
+      }),
+      GoRoute(path: '/onboarding', builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return OnboardingScreen(
+          idToken: extra['id_token'] ?? '',
+          email: extra['email'] ?? '',
+          name: extra['name'] ?? '',
+          photoUrl: extra['photo_url'],
+        );
       }),
     ],
   );

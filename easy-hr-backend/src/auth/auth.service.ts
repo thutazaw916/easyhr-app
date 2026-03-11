@@ -12,6 +12,8 @@ import {
   RequestOtpDto,
   VerifyOtpDto,
   FirebasePhoneLoginDto,
+  GoogleLoginDto,
+  OnboardCompanyDto,
 } from './dto/auth.dto';
 import * as admin from 'firebase-admin';
 
@@ -559,6 +561,191 @@ export class AuthService {
         days_remaining: daysLeft,
         max_employees: company.max_employees || 9,
         is_expired: subscriptionEnd ? subscriptionEnd < now : false,
+      },
+    };
+  }
+
+  // ============================================
+  // 8. Google Social Login
+  // ============================================
+  async googleLogin(dto: GoogleLoginDto) {
+    const db = this.supabaseService.getClient();
+
+    // Verify Firebase ID token (Google Sign-In goes through Firebase Auth)
+    let decodedToken: admin.auth.DecodedIdToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(dto.id_token);
+    } catch (e) {
+      throw new UnauthorizedException('Invalid Google token');
+    }
+
+    const email = decodedToken.email?.toLowerCase().trim();
+    if (!email) {
+      throw new BadRequestException('No email found in Google account');
+    }
+
+    const googleName = decodedToken.name || email.split('@')[0];
+    const googlePhoto = decodedToken.picture || null;
+
+    // Check if user exists as employee (by email)
+    const { data: employee } = await db
+      .from('employees')
+      .select('*')
+      .eq('email', email)
+      .eq('is_active', true)
+      .single();
+
+    if (employee) {
+      // Existing user — login normally
+      return this._loginEmployee(employee);
+    }
+
+    // Check if company exists with this email (owner who signed up but maybe via email flow)
+    const { data: company } = await db
+      .from('companies')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (company) {
+      // Company exists, find the owner employee
+      const { data: ownerEmp } = await db
+        .from('employees')
+        .select('*')
+        .eq('company_id', company.id)
+        .eq('role', 'owner')
+        .eq('is_active', true)
+        .single();
+
+      if (ownerEmp) {
+        return this._loginEmployee(ownerEmp);
+      }
+    }
+
+    // New user — needs company onboarding
+    return {
+      needs_onboarding: true,
+      google_user: {
+        email,
+        name: googleName,
+        photo_url: googlePhoto,
+      },
+    };
+  }
+
+  // ============================================
+  // 9. Onboard Company (after Google login, new user)
+  // ============================================
+  async onboardCompany(dto: OnboardCompanyDto) {
+    const db = this.supabaseService.getClient();
+
+    // Verify Firebase ID token again
+    let decodedToken: admin.auth.DecodedIdToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(dto.id_token);
+    } catch (e) {
+      throw new UnauthorizedException('Invalid Google token');
+    }
+
+    const email = decodedToken.email?.toLowerCase().trim();
+    if (!email) {
+      throw new BadRequestException('No email found in Google account');
+    }
+
+    // Check if company already exists with this email
+    const { data: existing } = await db
+      .from('companies')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (existing) {
+      throw new ConflictException('A company with this email already exists');
+    }
+
+    // Create company (auto-verified since Google auth confirms email)
+    const now = new Date();
+    const trialEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const { data: company, error: companyError } = await db
+      .from('companies')
+      .insert({
+        name: dto.company_name,
+        name_mm: dto.company_name_mm || null,
+        email,
+        phone: dto.phone,
+        business_type: dto.business_type,
+        address: dto.address || null,
+        city: dto.city || null,
+        verified: true,
+        is_active: true,
+        subscription_plan: 'free',
+        subscription_status: 'active',
+        subscription_start: now.toISOString(),
+        subscription_end: trialEnd.toISOString(),
+        max_employees: 9,
+      })
+      .select()
+      .single();
+
+    if (companyError) throw new BadRequestException(companyError.message);
+
+    // Auto-create default "Head Office" branch with QR
+    const qrSecret = 'EHR-' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    await db.from('branches').insert({
+      company_id: company.id,
+      name: 'Head Office',
+      name_mm: 'ရုံးချုပ်',
+      is_active: true,
+      qr_code_enabled: true,
+      qr_secret_key: qrSecret,
+    });
+
+    // Create owner employee
+    const nameParts = dto.owner_name.trim().split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ') || null;
+
+    const { data: owner, error: ownerError } = await db
+      .from('employees')
+      .insert({
+        company_id: company.id,
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        phone: dto.phone,
+        role: 'owner',
+        is_active: true,
+      })
+      .select()
+      .single();
+
+    if (ownerError) throw new BadRequestException(ownerError.message);
+
+    // Generate JWT and return login response
+    const token = this.generateToken(owner, company);
+
+    return {
+      access_token: token,
+      user: {
+        id: owner.id,
+        name: dto.owner_name,
+        email,
+        phone: dto.phone,
+        role: 'owner',
+        company_id: company.id,
+        company_name: company.name,
+        profile_photo_url: decodedToken.picture || null,
+        language: 'mm',
+        dark_mode: false,
+      },
+      subscription: {
+        plan: 'free',
+        status: 'active',
+        expires: trialEnd.toISOString(),
+        days_remaining: 30,
+        max_employees: 9,
+        is_expired: false,
       },
     };
   }

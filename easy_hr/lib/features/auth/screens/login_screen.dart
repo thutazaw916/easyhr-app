@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -33,6 +34,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     _passwordController.dispose();
     _animController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    final result = await ref.read(authProvider.notifier).googleSignIn();
+    if (!mounted) return;
+
+    if (result == null) {
+      final error = ref.read(authProvider).error;
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: AppColors.error),
+        );
+      }
+      return;
+    }
+
+    if (result['needs_onboarding'] == true) {
+      final googleUser = result['google_user'] as Map<String, dynamic>;
+      // Get fresh Firebase ID token for onboarding
+      final fbUser = fb.FirebaseAuth.instance.currentUser;
+      final idToken = await fbUser?.getIdToken() ?? '';
+      if (mounted) {
+        context.push('/onboarding', extra: {
+          'id_token': idToken,
+          'email': googleUser['email'] ?? '',
+          'name': googleUser['name'] ?? '',
+          'photo_url': googleUser['photo_url'],
+        });
+      }
+    } else {
+      // Login successful, router will redirect
+      if (mounted) context.go('/');
+    }
   }
 
   Future<void> _handleLogin() async {
@@ -160,6 +194,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                     style: OutlinedButton.styleFrom(
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Google Sign-In Button
+                SizedBox(
+                  width: double.infinity, height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: authState.isLoading ? null : _handleGoogleSignIn,
+                    icon: Image.network(
+                      'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                      width: 20, height: 20,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata, size: 24),
+                    ),
+                    label: const Text('Continue with Google'),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      side: BorderSide(color: Colors.grey.withOpacity(0.3)),
                     ),
                   ),
                 ),

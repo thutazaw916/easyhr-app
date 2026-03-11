@@ -9,6 +9,8 @@ import {
   RequestOtpDto,
   VerifyOtpDto,
   FirebasePhoneLoginDto,
+  GoogleLoginDto,
+  OnboardCompanyDto,
 } from './dto/auth.dto';
 
 @ApiTags('Authentication')
@@ -63,5 +65,19 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with Firebase Phone Auth token' })
   async firebasePhoneLogin(@Body() dto: FirebasePhoneLoginDto) {
     return this.authService.firebasePhoneLogin(dto);
+  }
+
+  @Post('google-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login with Google (Firebase ID token)' })
+  async googleLogin(@Body() dto: GoogleLoginDto) {
+    return this.authService.googleLogin(dto);
+  }
+
+  @Post('onboard-company')
+  @ApiOperation({ summary: 'Create company after Google social login (new user)' })
+  @ApiResponse({ status: 201, description: 'Company created with 30-day free trial' })
+  async onboardCompany(@Body() dto: OnboardCompanyDto) {
+    return this.authService.onboardCompany(dto);
   }
 }
