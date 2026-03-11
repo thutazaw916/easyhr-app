@@ -27,7 +27,7 @@ api.interceptors.response.use(
 
 // Auth
 export const login = (email: string, password: string) => api.post('/auth/admin/login', { email, password });
-export const googleLogin = (id_token: string) => api.post('/auth/google/login', { id_token });
+export const googleLogin = (id_token: string) => api.post('/auth/google-login', { id_token });
 export const getMe = () => api.get('/employees/me');
 export const companySignUp = (data: any) => api.post('/auth/company/signup', data);
 export const verifyCompany = (email: string, verification_code: string) => api.post('/auth/company/verify', { email, verification_code });

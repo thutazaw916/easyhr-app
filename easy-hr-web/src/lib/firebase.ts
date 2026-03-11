@@ -7,8 +7,8 @@ const firebaseConfig = {
   projectId: 'easy-hr-23a6a',
   storageBucket: 'easy-hr-23a6a.firebasestorage.app',
   messagingSenderId: '87983656864',
-  appId: '1:87983656864:web:669fdb06b20f615aaa5ec5',
-  measurementId: 'G-7CFB3NE5Q8',
+  appId: '1:87983656864:web:a42025597d10d657aa5ec5',
+  measurementId: 'G-4GG1V7BVFM',
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
