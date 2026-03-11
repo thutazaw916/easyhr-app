@@ -109,12 +109,18 @@ export class EmployeeService {
     if (data.contract_type) insertData.contract_type = data.contract_type;
 
     // Create employee
-    const employee = await this.supabaseService.create('employees', insertData);
-
-    return {
-      message: 'Employee added successfully',
-      employee,
-    };
+    try {
+      const employee = await this.supabaseService.create('employees', insertData);
+      return {
+        message: 'Employee added successfully',
+        employee,
+      };
+    } catch (err: any) {
+      console.error('Employee create error:', err);
+      throw new BadRequestException(
+        err?.message || err?.details || JSON.stringify(err) || 'Failed to create employee'
+      );
+    }
   }
 
   // ============================================
