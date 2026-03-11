@@ -1,7 +1,8 @@
 'use client';
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import Cookies from 'js-cookie';
-import { login as apiLogin, getMe } from './api';
+import { login as apiLogin, googleLogin as apiGoogleLogin, getMe } from './api';
+import { signInWithGoogle } from './firebase';
 
 interface User {
   id: string;
@@ -18,6 +19,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<any>;
   logout: () => void;
 }
 
@@ -39,9 +41,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const res = await apiLogin(email, password);
-    const { access_token, employee, company } = res.data;
+    const { access_token, user: userData } = res.data;
     Cookies.set('token', access_token, { expires: 7 });
-    setUser({ ...employee, company });
+    const me = await getMe();
+    setUser(me.data);
+  };
+
+  const loginWithGoogle = async () => {
+    const idToken = await signInWithGoogle();
+    const res = await apiGoogleLogin(idToken);
+    const { access_token, needs_onboarding } = res.data;
+    if (needs_onboarding) {
+      return { needs_onboarding: true, google_user: res.data.google_user };
+    }
+    Cookies.set('token', access_token, { expires: 7 });
+    const me = await getMe();
+    setUser(me.data);
+    return { needs_onboarding: false };
   };
 
   const logout = () => {
@@ -51,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );
