@@ -37,7 +37,7 @@ export class EmployeeService {
       .select('id')
       .eq('company_id', companyId)
       .eq('phone', data.phone)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       throw new ConflictException('Employee with this phone number already exists in your company');
@@ -66,19 +66,20 @@ export class EmployeeService {
     let employeeCode = data.employee_code;
     if (!employeeCode) {
       const nextNum = (currentCount || 0) + 1;
-      employeeCode = `EMP-${String(nextNum).padStart(3, '0')}`;
-      // Check uniqueness and increment if needed
-      let codeExists = true;
       let attempt = nextNum;
-      while (codeExists) {
+      employeeCode = `EMP-${String(attempt).padStart(3, '0')}`;
+      // Check uniqueness and increment if needed
+      let maxAttempts = 100;
+      while (maxAttempts-- > 0) {
         const { data: codeCheck } = await db
           .from('employees')
           .select('id')
           .eq('company_id', companyId)
           .eq('employee_code', employeeCode)
-          .single();
-        if (!codeCheck) { codeExists = false; }
-        else { attempt++; employeeCode = `EMP-${String(attempt).padStart(3, '0')}`; }
+          .maybeSingle();
+        if (!codeCheck) break;
+        attempt++;
+        employeeCode = `EMP-${String(attempt).padStart(3, '0')}`;
       }
     }
 
