@@ -30,6 +30,14 @@
           }
         },
         {
+          "client_id": "87983656864-v4hoh4sa4btigko9i41lklsq94a8qlej.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.easyhr.mm",
+            "certificate_hash": "ea5807d6719ab953edd673417290772babca02fc"
+          }
+        },
+        {
           "client_id": "87983656864-ngenhqpfmgg71ib6127p2bk7fi7h3soj.apps.googleusercontent.com",
           "client_type": 3
         }
