@@ -113,6 +113,13 @@ class ApiService {
     return response.data;
   }
 
+  Future<Map<String, dynamic>> appleLogin(String idToken) async {
+    final response = await _dio.post('/auth/apple-login', data: {
+      'id_token': idToken,
+    });
+    return response.data;
+  }
+
   Future<Map<String, dynamic>> onboardCompany(Map<String, dynamic> data) async {
     final response = await _dio.post('/auth/onboard-company', data: data);
     return response.data;

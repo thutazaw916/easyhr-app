@@ -187,6 +187,16 @@ export class OnboardCompanyDto {
 }
 
 // ============================================
+// Apple Login
+// ============================================
+export class AppleLoginDto {
+  @ApiProperty({ example: 'eyJhbGciOiJSUzI1NiIs...' })
+  @IsString()
+  @IsNotEmpty()
+  id_token: string;
+}
+
+// ============================================
 // Accept Employee Invitation
 // ============================================
 export class AcceptInviteDto {

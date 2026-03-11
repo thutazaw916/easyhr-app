@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -52,7 +53,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
 
     if (result['needs_onboarding'] == true) {
       final googleUser = result['google_user'] as Map<String, dynamic>;
-      // Get fresh Firebase ID token for onboarding
       final fbUser = fb.FirebaseAuth.instance.currentUser;
       final idToken = await fbUser?.getIdToken() ?? '';
       if (mounted) {
@@ -64,7 +64,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         });
       }
     } else {
-      // Login successful, router will redirect
+      if (mounted) context.go('/');
+    }
+  }
+
+  Future<void> _handleAppleSignIn() async {
+    final result = await ref.read(authProvider.notifier).appleSignIn();
+    if (!mounted) return;
+
+    if (result == null) {
+      final error = ref.read(authProvider).error;
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: AppColors.error),
+        );
+      }
+      return;
+    }
+
+    if (result['needs_onboarding'] == true) {
+      final appleUser = result['apple_user'] as Map<String, dynamic>;
+      final fbUser = fb.FirebaseAuth.instance.currentUser;
+      final idToken = await fbUser?.getIdToken() ?? '';
+      if (mounted) {
+        context.push('/onboarding', extra: {
+          'id_token': idToken,
+          'email': appleUser['email'] ?? '',
+          'name': appleUser['name'] ?? '',
+        });
+      }
+    } else {
       if (mounted) context.go('/');
     }
   }
@@ -217,6 +246,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                     ),
                   ),
                 ),
+
+                // Apple Sign-In Button (iOS only)
+                if (Platform.isIOS) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity, height: 52,
+                    child: OutlinedButton.icon(
+                      onPressed: authState.isLoading ? null : _handleAppleSignIn,
+                      icon: const Icon(Icons.apple, size: 24, color: Colors.black),
+                      label: const Text('Continue with Apple', style: TextStyle(color: Colors.black)),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        side: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                        backgroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 32),
 

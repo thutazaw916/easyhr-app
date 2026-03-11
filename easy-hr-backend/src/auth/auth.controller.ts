@@ -10,6 +10,7 @@ import {
   VerifyOtpDto,
   FirebasePhoneLoginDto,
   GoogleLoginDto,
+  AppleLoginDto,
   OnboardCompanyDto,
   AcceptInviteDto,
 } from './dto/auth.dto';
@@ -75,8 +76,15 @@ export class AuthController {
     return this.authService.googleLogin(dto);
   }
 
+  @Post('apple-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login with Apple via Firebase ID token' })
+  async appleLogin(@Body() dto: AppleLoginDto) {
+    return this.authService.appleLogin(dto);
+  }
+
   @Post('onboard-company')
-  @ApiOperation({ summary: 'Create company after Google social login (new user)' })
+  @ApiOperation({ summary: 'Create company after Google/Apple social login (new user)' })
   @ApiResponse({ status: 201, description: 'Company created with 30-day free trial' })
   async onboardCompany(@Body() dto: OnboardCompanyDto) {
     return this.authService.onboardCompany(dto);

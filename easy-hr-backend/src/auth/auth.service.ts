@@ -13,6 +13,7 @@ import {
   VerifyOtpDto,
   FirebasePhoneLoginDto,
   GoogleLoginDto,
+  AppleLoginDto,
   OnboardCompanyDto,
   AcceptInviteDto,
 } from './dto/auth.dto';
@@ -635,7 +636,71 @@ export class AuthService {
   }
 
   // ============================================
-  // 9. Onboard Company (after Google login, new user)
+  // 8b. Apple Social Login
+  // ============================================
+  async appleLogin(dto: AppleLoginDto) {
+    const db = this.supabaseService.getClient();
+
+    // Verify Firebase ID token (Apple Sign-In goes through Firebase Auth)
+    let decodedToken: admin.auth.DecodedIdToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(dto.id_token);
+    } catch (e) {
+      throw new UnauthorizedException('Invalid Apple token');
+    }
+
+    const email = decodedToken.email?.toLowerCase().trim();
+    if (!email) {
+      throw new BadRequestException('No email found in Apple account');
+    }
+
+    const appleName = decodedToken.name || email.split('@')[0];
+
+    // Check if user exists as employee (by email)
+    const { data: employee } = await db
+      .from('employees')
+      .select('*')
+      .eq('email', email)
+      .eq('is_active', true)
+      .single();
+
+    if (employee) {
+      return this._loginEmployee(employee);
+    }
+
+    // Check if company exists with this email
+    const { data: company } = await db
+      .from('companies')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (company) {
+      const { data: ownerEmp } = await db
+        .from('employees')
+        .select('*')
+        .eq('company_id', company.id)
+        .eq('role', 'owner')
+        .eq('is_active', true)
+        .single();
+
+      if (ownerEmp) {
+        return this._loginEmployee(ownerEmp);
+      }
+    }
+
+    // New user — needs company onboarding
+    return {
+      needs_onboarding: true,
+      apple_user: {
+        email,
+        name: appleName,
+      },
+    };
+  }
+
+  // ============================================
+  // 9. Onboard Company (after Google/Apple login, new user)
   // ============================================
   async onboardCompany(dto: OnboardCompanyDto) {
     const db = this.supabaseService.getClient();

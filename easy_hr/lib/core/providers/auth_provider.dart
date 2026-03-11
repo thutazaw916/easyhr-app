@@ -1,10 +1,13 @@
-import 'package:dio/dio.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:crypto/crypto.dart';
 import '../services/api_service.dart';
 
 // ============================================
@@ -275,6 +278,74 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(isLoading: false, error: _getErrorMessage(e));
       return null;
     }
+  }
+
+  // Apple Sign-In
+  Future<Map<String, dynamic>?> appleSignIn() async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      // Generate nonce for security
+      final rawNonce = _generateNonce();
+      final nonce = _sha256ofString(rawNonce);
+
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [AppleIDAuthorizationScopes.email, AppleIDAuthorizationScopes.fullName],
+        nonce: nonce,
+      );
+
+      final oauthCredential = fb.OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        rawNonce: rawNonce,
+      );
+
+      final userCredential = await fb.FirebaseAuth.instance.signInWithCredential(oauthCredential);
+      final idToken = await userCredential.user?.getIdToken();
+      if (idToken == null) throw Exception('Failed to get Firebase ID token');
+
+      // Apple may only provide name on first sign-in
+      final displayName = [
+        appleCredential.givenName,
+        appleCredential.familyName,
+      ].where((n) => n != null && n.isNotEmpty).join(' ');
+
+      final response = await _api.appleLogin(idToken);
+
+      if (response['needs_onboarding'] == true) {
+        state = state.copyWith(isLoading: false);
+        // Pass Apple user info for onboarding
+        response['apple_user'] = {
+          'email': appleCredential.email ?? userCredential.user?.email ?? '',
+          'name': displayName.isNotEmpty ? displayName : (userCredential.user?.displayName ?? ''),
+        };
+        return response;
+      }
+
+      // Existing user — login success
+      await _api.saveToken(response['access_token']);
+      final user = UserModel.fromJson(response['user']);
+      final sub = response['subscription'] != null
+          ? SubscriptionModel.fromJson(response['subscription'])
+          : SubscriptionModel();
+      await _saveUser(user);
+      await _saveSubscription(sub);
+      state = state.copyWith(user: user, subscription: sub, isAuthenticated: true, isLoading: false);
+      return response;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _getErrorMessage(e));
+      return null;
+    }
+  }
+
+  String _generateNonce([int length = 32]) {
+    const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)]).join();
+  }
+
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 
   // Onboard Company (after Google login, new user)
