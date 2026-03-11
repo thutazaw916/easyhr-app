@@ -85,28 +85,31 @@ export class EmployeeService {
     // Map join_date to hire_date if provided
     const hireDate = data.join_date || data.hire_date;
 
-    // Create employee
-    const employee = await this.supabaseService.create('employees', {
+    // Build insert data — only include non-null fields
+    const insertData: Record<string, any> = {
       company_id: companyId,
       first_name: data.first_name,
-      last_name: data.last_name,
-      name_mm: data.name_mm,
       phone: data.phone,
-      email: data.email,
-      department_id: data.department_id,
-      position_id: data.position_id,
-      branch_id: data.branch_id,
       role: data.role || 'employee',
-      gender: data.gender,
-      position: data.position,
       employee_code: employeeCode,
-      base_salary: data.base_salary ? Number(data.base_salary) : null,
-      nrc_number: data.nrc_number,
-      hire_date: hireDate,
-      date_of_birth: data.date_of_birth,
-      contract_type: data.contract_type,
       is_active: true,
-    });
+    };
+    if (data.last_name) insertData.last_name = data.last_name;
+    if (data.name_mm) insertData.name_mm = data.name_mm;
+    if (data.email) insertData.email = data.email;
+    if (data.department_id) insertData.department_id = data.department_id;
+    if (data.position_id) insertData.position_id = data.position_id;
+    if (data.branch_id) insertData.branch_id = data.branch_id;
+    if (data.gender) insertData.gender = data.gender;
+    if (data.position) insertData.position = data.position;
+    if (data.base_salary) insertData.base_salary = Number(data.base_salary);
+    if (data.nrc_number) insertData.nrc_number = data.nrc_number;
+    if (hireDate) insertData.hire_date = hireDate;
+    if (data.date_of_birth) insertData.date_of_birth = data.date_of_birth;
+    if (data.contract_type) insertData.contract_type = data.contract_type;
+
+    // Create employee
+    const employee = await this.supabaseService.create('employees', insertData);
 
     return {
       message: 'Employee added successfully',
