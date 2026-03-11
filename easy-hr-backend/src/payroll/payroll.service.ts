@@ -21,6 +21,7 @@ export class PayrollService {
     ot_rate_per_hour?: number;
     attendance_bonus?: number;
     ssb_employee_percent?: number;
+    custom_components?: Array<{ name: string; amount: number; type?: string }>;
   }) {
     const db = this.supabaseService.getClient();
 
@@ -57,6 +58,7 @@ export class PayrollService {
         ot_rate_per_hour: data.ot_rate_per_hour || 0,
         attendance_bonus: data.attendance_bonus || 0,
         ssb_employee_percent: data.ssb_employee_percent || 2.0,
+        custom_components: data.custom_components || [],
         effective_date: new Date().toISOString().split('T')[0],
         is_current: true,
       })

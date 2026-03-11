@@ -401,6 +401,18 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> with SingleTicker
     final otRateC = TextEditingController(text: existing != null ? '${(existing['ot_rate_per_hour'] ?? 0)}' : '0');
     bool saving = false;
 
+    // Custom components list
+    final List<Map<String, TextEditingController>> customComponents = [];
+    if (existing != null && existing['custom_components'] != null) {
+      final List<dynamic> saved = existing['custom_components'] is List ? existing['custom_components'] : [];
+      for (final c in saved) {
+        customComponents.add({
+          'name': TextEditingController(text: c['name']?.toString() ?? ''),
+          'amount': TextEditingController(text: '${c['amount'] ?? 0}'),
+        });
+      }
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -433,6 +445,102 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> with SingleTicker
                   const SizedBox(width: 10),
                   Expanded(child: _buildSalaryField('OT Rate/hr', otRateC, Iconsax.clock)),
                 ]),
+
+                // Custom Components Section
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Custom Allowances', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    InkWell(
+                      onTap: () {
+                        setBS(() {
+                          customComponents.add({
+                            'name': TextEditingController(),
+                            'amount': TextEditingController(text: '0'),
+                          });
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Iconsax.add, size: 16, color: AppColors.primary),
+                            SizedBox(width: 4),
+                            Text('Add', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ...List.generate(customComponents.length, (i) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: TextField(
+                            controller: customComponents[i]['name'],
+                            decoration: InputDecoration(
+                              hintText: 'Name',
+                              hintStyle: const TextStyle(fontSize: 12),
+                              prefixIcon: const Icon(Iconsax.tag, size: 16),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: customComponents[i]['amount'],
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              hintText: 'MMK',
+                              hintStyle: const TextStyle(fontSize: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        InkWell(
+                          onTap: () => setBS(() => customComponents.removeAt(i)),
+                          child: const Padding(
+                            padding: EdgeInsets.all(6),
+                            child: Icon(Iconsax.trash, size: 18, color: AppColors.error),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                if (customComponents.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade300, width: 0.5),
+                    ),
+                    child: Text(
+                      'Tap + Add to create custom allowances',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+
                 const SizedBox(height: 20),
 
                 SizedBox(
@@ -456,12 +564,22 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> with SingleTicker
                             setBS(() => saving = true);
                             try {
                               final api = ref.read(apiServiceProvider);
+                              // Build custom components list
+                              final List<Map<String, dynamic>> customList = [];
+                              for (final c in customComponents) {
+                                final cName = c['name']!.text.trim();
+                                final cAmount = double.tryParse(c['amount']!.text) ?? 0;
+                                if (cName.isNotEmpty) {
+                                  customList.add({'name': cName, 'amount': cAmount, 'type': 'earning'});
+                                }
+                              }
                               await api.setSalaryStructure(emp['id'].toString(), {
                                 'basic_salary': basic,
                                 'transport_allowance': double.tryParse(transportC.text) ?? 0,
                                 'meal_allowance': double.tryParse(mealC.text) ?? 0,
                                 'phone_allowance': double.tryParse(phoneC.text) ?? 0,
                                 'ot_rate_per_hour': double.tryParse(otRateC.text) ?? 0,
+                                'custom_components': customList,
                               });
                               if (mounted) {
                                 Navigator.pop(ctx);
