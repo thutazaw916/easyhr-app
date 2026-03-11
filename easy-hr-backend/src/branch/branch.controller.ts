@@ -4,10 +4,11 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { BranchService } from './branch.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
+import { SubscriptionGuard } from '../auth/guards/subscription.guard';
 
 @ApiTags('Branches')
 @Controller('branches')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
 @ApiBearerAuth()
 export class BranchController {
   constructor(private readonly branchService: BranchService) {}

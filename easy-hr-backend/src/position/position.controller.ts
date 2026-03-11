@@ -3,10 +3,11 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PositionService } from './position.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
+import { SubscriptionGuard } from '../auth/guards/subscription.guard';
 
 @ApiTags('Positions')
 @Controller('positions')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
 @ApiBearerAuth()
 export class PositionController {
   constructor(private readonly positionService: PositionService) {}

@@ -2,6 +2,7 @@ import { Controller, Post, Get, Delete, Body, Query, UseGuards, Request } from '
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ChatbotService } from './chatbot.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SubscriptionGuard, PremiumFeature } from '../auth/guards/subscription.guard';
 import { IsString, IsNotEmpty, IsOptional, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -19,7 +20,8 @@ class ChatMessageDto {
 
 @ApiTags('AI Chatbot')
 @Controller('chatbot')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGuard)
+@PremiumFeature()
 @ApiBearerAuth()
 export class ChatbotController {
   constructor(private readonly chatbotService: ChatbotService) {}

@@ -12,6 +12,7 @@ import '../../features/profile/screens/profile_screen.dart';
 import '../../features/chat/screens/chat_screen.dart';
 import '../../features/chatbot/screens/ai_chatbot_screen.dart';
 import '../../features/billing/screens/subscription_screen.dart';
+import '../../features/billing/screens/payment_wall_screen.dart';
 import '../../features/announcement/screens/announcement_screen.dart';
 import '../../features/calendar/screens/calendar_screen.dart';
 import '../../features/admin/screens/admin_dashboard_screen.dart';
@@ -91,6 +92,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/settings/departments', builder: (context, state) => const DepartmentsScreen()),
       GoRoute(path: '/about', builder: (context, state) => const AboutScreen()),
       GoRoute(path: '/billing', builder: (context, state) => const SubscriptionScreen()),
+      GoRoute(path: '/payment-wall', builder: (context, state) {
+        final reason = state.uri.queryParameters['reason'];
+        return PaymentWallScreen(reason: reason);
+      }),
     ],
   );
 });

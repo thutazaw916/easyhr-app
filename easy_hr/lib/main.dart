@@ -7,6 +7,7 @@ import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/navigation_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +47,7 @@ class EasyHRApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final isDarkMode = ref.watch(darkModeProvider);
+    NavigationService.setRouter(router);
 
     return MaterialApp.router(
       title: 'Easy HR',

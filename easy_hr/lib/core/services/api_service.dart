@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'navigation_service.dart';
 
 // Development URLs (uncomment for local testing)
 // const String baseUrl = 'http://10.0.2.2:3000/api/v1'; // Android emulator → localhost
@@ -44,6 +44,11 @@ class ApiService {
         if (error.response?.statusCode == 401) {
           // Token expired - redirect to login
           try { _storage.deleteAll(); } catch (_) {}
+        } else if (error.response?.statusCode == 402) {
+          // Subscription expired or premium feature
+          final msg = error.response?.data?['message_mm'] ??
+              error.response?.data?['message'];
+          NavigationService.goToPaymentWall(reason: msg?.toString());
         }
         handler.next(error);
       },

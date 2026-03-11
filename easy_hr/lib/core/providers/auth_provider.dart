@@ -61,19 +61,63 @@ class UserModel {
 }
 
 // ============================================
+// Subscription Model
+// ============================================
+class SubscriptionModel {
+  final String plan;
+  final String status;
+  final String? expires;
+  final int daysRemaining;
+  final int maxEmployees;
+  final bool isExpired;
+
+  SubscriptionModel({
+    this.plan = 'free',
+    this.status = 'active',
+    this.expires,
+    this.daysRemaining = 0,
+    this.maxEmployees = 9,
+    this.isExpired = false,
+  });
+
+  factory SubscriptionModel.fromJson(Map<String, dynamic> json) {
+    return SubscriptionModel(
+      plan: json['plan'] ?? 'free',
+      status: json['status'] ?? 'active',
+      expires: json['expires'],
+      daysRemaining: json['days_remaining'] ?? 0,
+      maxEmployees: json['max_employees'] ?? 9,
+      isExpired: json['is_expired'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'plan': plan, 'status': status, 'expires': expires,
+    'days_remaining': daysRemaining, 'max_employees': maxEmployees,
+    'is_expired': isExpired,
+  };
+
+  bool get isFree => plan == 'free';
+  bool get isPaid => !isFree;
+  bool get isTrialExpiringSoon => daysRemaining > 0 && daysRemaining <= 7;
+}
+
+// ============================================
 // Auth State
 // ============================================
 class AuthState {
   final UserModel? user;
+  final SubscriptionModel? subscription;
   final bool isLoading;
   final String? error;
   final bool isAuthenticated;
 
-  AuthState({this.user, this.isLoading = false, this.error, this.isAuthenticated = false});
+  AuthState({this.user, this.subscription, this.isLoading = false, this.error, this.isAuthenticated = false});
 
-  AuthState copyWith({UserModel? user, bool? isLoading, String? error, bool? isAuthenticated}) {
+  AuthState copyWith({UserModel? user, SubscriptionModel? subscription, bool? isLoading, String? error, bool? isAuthenticated}) {
     return AuthState(
       user: user ?? this.user,
+      subscription: subscription ?? this.subscription,
       isLoading: isLoading ?? this.isLoading,
       error: error,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
@@ -94,17 +138,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> _loadSavedUser() async {
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString('user_data');
+    final subJson = prefs.getString('subscription_data');
     final token = await _api.getToken();
 
     if (userJson != null && token != null) {
       final user = UserModel.fromJson(jsonDecode(userJson));
-      state = state.copyWith(user: user, isAuthenticated: true);
+      final sub = subJson != null
+          ? SubscriptionModel.fromJson(jsonDecode(subJson))
+          : SubscriptionModel();
+      state = state.copyWith(user: user, subscription: sub, isAuthenticated: true);
     }
   }
 
   Future<void> _saveUser(UserModel user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_data', jsonEncode(user.toJson()));
+  }
+
+  Future<void> _saveSubscription(SubscriptionModel sub) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('subscription_data', jsonEncode(sub.toJson()));
   }
 
   // Admin Login (Email + Password)
@@ -114,8 +167,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final response = await _api.adminLogin(email, password);
       await _api.saveToken(response['access_token']);
       final user = UserModel.fromJson(response['user']);
+      final sub = response['subscription'] != null
+          ? SubscriptionModel.fromJson(response['subscription'])
+          : SubscriptionModel();
       await _saveUser(user);
-      state = state.copyWith(user: user, isAuthenticated: true, isLoading: false);
+      await _saveSubscription(sub);
+      state = state.copyWith(user: user, subscription: sub, isAuthenticated: true, isLoading: false);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _getErrorMessage(e));
@@ -142,8 +199,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final response = await _api.verifyOtp(phone, otp);
       await _api.saveToken(response['access_token']);
       final user = UserModel.fromJson(response['user']);
+      final sub = response['subscription'] != null
+          ? SubscriptionModel.fromJson(response['subscription'])
+          : SubscriptionModel();
       await _saveUser(user);
-      state = state.copyWith(user: user, isAuthenticated: true, isLoading: false);
+      await _saveSubscription(sub);
+      state = state.copyWith(user: user, subscription: sub, isAuthenticated: true, isLoading: false);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _getErrorMessage(e));
@@ -158,8 +219,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final response = await _api.firebasePhoneLogin(firebaseIdToken, phone);
       await _api.saveToken(response['access_token']);
       final user = UserModel.fromJson(response['user']);
+      final sub = response['subscription'] != null
+          ? SubscriptionModel.fromJson(response['subscription'])
+          : SubscriptionModel();
       await _saveUser(user);
-      state = state.copyWith(user: user, isAuthenticated: true, isLoading: false);
+      await _saveSubscription(sub);
+      state = state.copyWith(user: user, subscription: sub, isAuthenticated: true, isLoading: false);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _getErrorMessage(e));
@@ -172,6 +237,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await _api.clearToken();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_data');
+    await prefs.remove('subscription_data');
     state = AuthState();
   }
 

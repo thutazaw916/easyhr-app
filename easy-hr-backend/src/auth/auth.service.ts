@@ -306,6 +306,13 @@ export class AuthService {
     // Generate JWT
     const token = this.generateToken(employee, company);
 
+    // Calculate subscription info
+    const now = new Date();
+    const subEnd = company.subscription_end ? new Date(company.subscription_end) : null;
+    const daysLeft = subEnd
+      ? Math.max(0, Math.ceil((subEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+
     return {
       access_token: token,
       user: {
@@ -319,6 +326,14 @@ export class AuthService {
         profile_photo_url: employee.profile_photo_url,
         language: employee.language,
         dark_mode: employee.dark_mode,
+      },
+      subscription: {
+        plan: company.subscription_plan || 'free',
+        status: company.subscription_status || 'active',
+        expires: company.subscription_end,
+        days_remaining: daysLeft,
+        max_employees: company.max_employees || 9,
+        is_expired: subEnd ? subEnd < now : false,
       },
     };
   }
@@ -513,6 +528,13 @@ export class AuthService {
     // Generate JWT
     const token = this.generateToken(employee, company);
 
+    // Calculate subscription info
+    const now = new Date();
+    const subscriptionEnd = company.subscription_end ? new Date(company.subscription_end) : null;
+    const daysLeft = subscriptionEnd
+      ? Math.max(0, Math.ceil((subscriptionEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+
     return {
       access_token: token,
       user: {
@@ -529,6 +551,14 @@ export class AuthService {
         profile_photo_url: employee.profile_photo_url,
         language: employee.language,
         dark_mode: employee.dark_mode,
+      },
+      subscription: {
+        plan: company.subscription_plan || 'free',
+        status: company.subscription_status || 'active',
+        expires: company.subscription_end,
+        days_remaining: daysLeft,
+        max_employees: company.max_employees || 9,
+        is_expired: subscriptionEnd ? subscriptionEnd < now : false,
       },
     };
   }

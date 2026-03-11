@@ -3,10 +3,11 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { PayrollService } from './payroll.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
+import { SubscriptionGuard, PremiumFeature } from '../auth/guards/subscription.guard';
 
 @ApiTags('Payroll')
 @Controller('payroll')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
 @ApiBearerAuth()
 export class PayrollController {
   constructor(private readonly payrollService: PayrollService) {}
@@ -84,6 +85,7 @@ export class PayrollController {
 
   @Post('calculate')
   @Roles('owner', 'hr_manager')
+  @PremiumFeature()
   @ApiOperation({ summary: '🔥 One-click salary calculation for all employees' })
   @ApiQuery({ name: 'year', required: true, example: 2026 })
   @ApiQuery({ name: 'month', required: true, example: 2 })
@@ -102,6 +104,7 @@ export class PayrollController {
 
   @Get('monthly')
   @Roles('owner', 'hr_manager')
+  @PremiumFeature()
   @ApiOperation({ summary: 'Get monthly payroll with summary + chart data' })
   @ApiQuery({ name: 'year', required: true })
   @ApiQuery({ name: 'month', required: true })
@@ -111,6 +114,7 @@ export class PayrollController {
 
   @Put('adjust/:payrollId')
   @Roles('owner', 'hr_manager')
+  @PremiumFeature()
   @ApiOperation({ summary: 'Adjust payroll (add bonus, deductions)' })
   async adjustPayroll(@Request() req, @Param('payrollId') payrollId: string, @Body() data: any) {
     return this.payrollService.adjustPayroll(req.user.company_id, payrollId, data);
@@ -118,6 +122,7 @@ export class PayrollController {
 
   @Post('approve')
   @Roles('owner')
+  @PremiumFeature()
   @ApiOperation({ summary: 'Approve all payrolls for the month (Owner only)' })
   @ApiQuery({ name: 'year', required: true })
   @ApiQuery({ name: 'month', required: true })
@@ -127,6 +132,7 @@ export class PayrollController {
 
   @Post('send-payslips')
   @Roles('owner', 'hr_manager')
+  @PremiumFeature()
   @ApiOperation({ summary: 'Send payslips to all employees' })
   @ApiQuery({ name: 'year', required: true })
   @ApiQuery({ name: 'month', required: true })

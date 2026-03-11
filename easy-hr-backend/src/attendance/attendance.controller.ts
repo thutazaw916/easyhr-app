@@ -3,10 +3,11 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { AttendanceService } from './attendance.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
+import { SubscriptionGuard } from '../auth/guards/subscription.guard';
 
 @ApiTags('Attendance')
 @Controller('attendance')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SubscriptionGuard)
 @ApiBearerAuth()
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
