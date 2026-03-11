@@ -1,14 +1,19 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Request, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { BillingService } from './billing.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import { SuperAdminGuard } from '../super-admin/super-admin.guard';
+import { SupabaseService } from '../supabase/supabase.service';
 
 @ApiTags('Billing & Subscription')
 @Controller('billing')
 export class BillingController {
-  constructor(private readonly billingService: BillingService) {}
+  constructor(
+    private readonly billingService: BillingService,
+    private readonly supabaseService: SupabaseService,
+  ) {}
 
   // ============================================
   // PUBLIC: Get pricing plans
@@ -97,5 +102,45 @@ export class BillingController {
   @ApiOperation({ summary: '🔐 Reject payment' })
   async rejectPayment(@Param('id') id: string, @Body() data: any) {
     return this.billingService.rejectPayment(id, data?.reason);
+  }
+
+  // ============================================
+  // COMPANY: Upload payment screenshot
+  // ============================================
+  @Post('upload-screenshot')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('owner', 'hr_manager')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Upload payment screenshot (Owner/HR)' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadScreenshot(@Request() req, @UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('No file uploaded');
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      throw new BadRequestException('Only JPEG, PNG, and WebP images are allowed');
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      throw new BadRequestException('File size must be under 5MB');
+    }
+
+    const companyId = req.user.company_id;
+    const ext = file.originalname.split('.').pop() || 'jpg';
+    const fileName = `payments/${companyId}/${Date.now()}.${ext}`;
+
+    const db = this.supabaseService.getClient();
+    const { data, error } = await db.storage
+      .from('uploads')
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false,
+      });
+
+    if (error) throw new BadRequestException(`Upload failed: ${error.message}`);
+
+    const { data: urlData } = db.storage.from('uploads').getPublicUrl(fileName);
+
+    return { url: urlData.publicUrl };
   }
 }

@@ -372,6 +372,14 @@ class ApiService {
     return response.data;
   }
 
+  Future<String> uploadPaymentScreenshot(String filePath) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(filePath),
+    });
+    final response = await _dio.post('/billing/upload-screenshot', data: formData);
+    return response.data['url'];
+  }
+
   // ============================================
   // TOKEN MANAGEMENT
   // ============================================

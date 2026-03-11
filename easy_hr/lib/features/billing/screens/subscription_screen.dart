@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/providers/auth_provider.dart';
@@ -254,6 +256,8 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     String? selectedMethod;
     int months = 1;
     final txnController = TextEditingController();
+    File? screenshotFile;
+    bool isUploading = false;
 
     showModalBottomSheet(
       context: context,
@@ -264,102 +268,158 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           final total = (plan['price'] ?? 0) * months;
           return Padding(
             padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
-                const SizedBox(height: 16),
-                Text(mm ? 'ငွေပေးချေရန်' : 'Payment', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text('${plan['label']} Plan', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 16),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+                  const SizedBox(height: 16),
+                  Text(mm ? 'ငွေပေးချေရန်' : 'Payment', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text('${plan['label']} Plan', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 16),
 
-                // Duration
-                Text(mm ? 'ကာလ' : 'Duration', style: const TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [1, 3, 6, 12].map((m) => Expanded(
-                    child: GestureDetector(
-                      onTap: () => setSheetState(() => months = m),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: months == m ? AppColors.primary : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(10),
+                  // Duration
+                  Text(mm ? 'ကာလ' : 'Duration', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [1, 3, 6, 12].map((m) => Expanded(
+                      child: GestureDetector(
+                        onTap: () => setSheetState(() => months = m),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: months == m ? AppColors.primary : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(children: [
+                            Text('$m', style: TextStyle(fontWeight: FontWeight.bold, color: months == m ? Colors.white : Colors.black)),
+                            Text(mm ? 'လ' : 'mo', style: TextStyle(fontSize: 10, color: months == m ? Colors.white70 : Colors.grey)),
+                          ]),
                         ),
-                        child: Column(children: [
-                          Text('$m', style: TextStyle(fontWeight: FontWeight.bold, color: months == m ? Colors.white : Colors.black)),
-                          Text(mm ? 'လ' : 'mo', style: TextStyle(fontSize: 10, color: months == m ? Colors.white70 : Colors.grey)),
-                        ]),
                       ),
+                    )).toList(),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Total
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.primary.withOpacity(0.2)),
                     ),
-                  )).toList(),
-                ),
-                const SizedBox(height: 16),
-
-                // Total
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(mm ? 'စုစုပေါင်း' : 'Total', style: const TextStyle(fontWeight: FontWeight.w600)),
-                      Text(_formatMMK(total), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Payment method
-                Text(mm ? 'ငွေပေးချေနည်း' : 'Payment Method', style: const TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                ...methods.map((m) => RadioListTile<String>(
-                  value: m['id'],
-                  groupValue: selectedMethod,
-                  onChanged: (v) => setSheetState(() => selectedMethod = v),
-                  title: Text('${m['icon']} ${m['name']}'),
-                  subtitle: Text(m['account'] ?? ''),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  activeColor: AppColors.primary,
-                )),
-                const SizedBox(height: 12),
-
-                // Transaction ID
-                TextField(
-                  controller: txnController,
-                  decoration: InputDecoration(
-                    labelText: mm ? 'Transaction ID (ချန်ယူ ID)' : 'Transaction ID',
-                    hintText: mm ? 'ငွေလွှဲပြေစာ ID ထည့်ပါ' : 'Enter payment reference',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Submit
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: selectedMethod == null ? null : () => _submitPayment(plan, selectedMethod!, months, total, txnController.text, mm),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(mm ? 'စုစုပေါင်း' : 'Total', style: const TextStyle(fontWeight: FontWeight.w600)),
+                        Text(_formatMMK(total), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                      ],
                     ),
-                    child: Text(mm ? 'ငွေပေးချေမှု တင်ရန်' : 'Submit Payment', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+
+                  // Payment method
+                  Text(mm ? 'ငွေပေးချေနည်း' : 'Payment Method', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  ...methods.map((m) => RadioListTile<String>(
+                    value: m['id'],
+                    groupValue: selectedMethod,
+                    onChanged: (v) => setSheetState(() => selectedMethod = v),
+                    title: Text('${m['icon']} ${m['name']}'),
+                    subtitle: Text(m['account'] ?? ''),
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    activeColor: AppColors.primary,
+                  )),
+                  const SizedBox(height: 12),
+
+                  // Transaction ID
+                  TextField(
+                    controller: txnController,
+                    decoration: InputDecoration(
+                      labelText: mm ? 'Transaction ID (ချန်ယူ ID)' : 'Transaction ID',
+                      hintText: mm ? 'ငွေလွှဲပြေစာ ID ထည့်ပါ' : 'Enter payment reference',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Screenshot upload
+                  Text(mm ? 'ငွေလွှဲ Screenshot' : 'Payment Screenshot', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: isUploading ? null : () async {
+                      final picker = ImagePicker();
+                      final picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1200, imageQuality: 80);
+                      if (picked != null) {
+                        setSheetState(() => screenshotFile = File(picked.path));
+                      }
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: screenshotFile != null ? 180 : 100,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+                      ),
+                      child: screenshotFile != null
+                          ? Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.file(screenshotFile!, width: double.infinity, height: 180, fit: BoxFit.cover),
+                                ),
+                                Positioned(
+                                  top: 6, right: 6,
+                                  child: GestureDetector(
+                                    onTap: () => setSheetState(() => screenshotFile = null),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Iconsax.image, size: 32, color: Colors.grey.shade400),
+                                const SizedBox(height: 8),
+                                Text(mm ? 'Screenshot ထည့်ရန် နှိပ်ပါ' : 'Tap to add screenshot',
+                                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                              ],
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Submit
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: (selectedMethod == null || isUploading) ? null : () => _submitPayment(plan, selectedMethod!, months, total, txnController.text, screenshotFile, mm),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: isUploading
+                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : Text(mm ? 'ငွေပေးချေမှု တင်ရန်' : 'Submit Payment', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -367,17 +427,25 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     );
   }
 
-  Future<void> _submitPayment(Map<String, dynamic> plan, String method, int months, int amount, String txnId, bool mm) async {
+  Future<void> _submitPayment(Map<String, dynamic> plan, String method, int months, int amount, String txnId, File? screenshot, bool mm) async {
     Navigator.pop(context);
     setState(() => _isLoading = true);
     try {
       final api = ref.read(apiServiceProvider);
+
+      // Upload screenshot first if provided
+      String? screenshotUrl;
+      if (screenshot != null) {
+        screenshotUrl = await api.uploadPaymentScreenshot(screenshot.path);
+      }
+
       final result = await api.submitPayment({
         'plan': plan['name'],
         'payment_method': method,
         'transaction_id': txnId,
         'amount': amount,
         'months': months,
+        if (screenshotUrl != null) 'screenshot_url': screenshotUrl,
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
