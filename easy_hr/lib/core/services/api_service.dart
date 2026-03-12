@@ -369,6 +369,21 @@ class ApiService {
     return response.data;
   }
 
+  Future<Map<String, dynamic>> adjustPayroll(String payrollId, Map<String, dynamic> data) async {
+    final response = await _dio.put('/payroll/adjust/$payrollId', data: data);
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> approvePayroll(int year, int month) async {
+    final response = await _dio.post('/payroll/approve', queryParameters: {'year': year, 'month': month});
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> sendPayslips(int year, int month) async {
+    final response = await _dio.post('/payroll/send-payslips', queryParameters: {'year': year, 'month': month});
+    return response.data;
+  }
+
   // ============================================
   // DEPARTMENTS / BRANCHES
   // ============================================
