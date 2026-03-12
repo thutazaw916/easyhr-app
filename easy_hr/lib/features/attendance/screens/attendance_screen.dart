@@ -808,23 +808,22 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () async {
-              final result = await Navigator.push<dynamic>(
+              final result = await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const QRAttendanceScanScreen()),
               );
-              if (mounted && result != null && result is Map<String, dynamic>) {
-                // Apply immediately from QR result
+              if (!mounted) return;
+              // Try instant update from QR result
+              if (result is Map<String, dynamic>) {
                 final attendance = result['attendance'];
                 final action = result['action']?.toString();
                 if (attendance is Map<String, dynamic>) {
                   _applyFromAttendanceRecord(attendance, isCheckOut: action == 'check_out');
                 }
-                _loadHistory();
-              } else if (mounted && result != null) {
-                // Fallback: reload from API
-                _loadTodayStatus();
-                _loadHistory();
               }
+              // ALWAYS reload from API to ensure sync
+              _loadTodayStatus();
+              _loadHistory();
             },
           ),
         ),

@@ -22,7 +22,7 @@ export class AttendanceService {
       .select('id, check_in_time')
       .eq('employee_id', employeeId)
       .eq('date', today)
-      .single();
+      .maybeSingle();
 
     if (existing?.check_in_time) {
       throw new BadRequestException('Already checked in today at ' + new Date(existing.check_in_time).toLocaleTimeString());
@@ -173,7 +173,7 @@ export class AttendanceService {
       .select('*')
       .eq('employee_id', employeeId)
       .eq('date', today)
-      .single();
+      .maybeSingle();
 
     if (!attendance?.check_in_time) {
       throw new BadRequestException('You have not checked in today');
@@ -277,7 +277,7 @@ export class AttendanceService {
       .select('*')
       .eq('employee_id', employeeId)
       .eq('date', today)
-      .single();
+      .maybeSingle();
 
     // --- CASE A: Already checked in + already checked out ---
     if (existing?.check_in_time && existing?.check_out_time) {
@@ -395,13 +395,13 @@ export class AttendanceService {
     const db = this.supabaseService.getClient();
     const today = new Date().toISOString().split('T')[0];
 
-    // Get today's attendance
+    // Get today's attendance (maybeSingle to avoid error when no record)
     const { data: attendance } = await db
       .from('attendance')
       .select('*')
       .eq('employee_id', employeeId)
       .eq('date', today)
-      .single();
+      .maybeSingle();
 
     // Get branch GPS
     const { data: employee } = await db
