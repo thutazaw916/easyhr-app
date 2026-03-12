@@ -287,6 +287,35 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
                       ],
                     ),
                   ],
+                  // Login PIN row
+                  if ((employee['login_pin'] ?? '').toString().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Iconsax.lock_1, size: 12, color: AppColors.primary),
+                        const SizedBox(width: 4),
+                        Text('PIN: ${employee['login_pin']}',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                        const SizedBox(width: 8),
+                        if (employee['device_id'] != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(color: AppColors.present.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(Iconsax.mobile, size: 10, color: AppColors.present),
+                              const SizedBox(width: 2),
+                              Text('Bound', style: TextStyle(fontSize: 9, color: AppColors.present, fontWeight: FontWeight.w500)),
+                            ]),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                            child: Text('No device', style: TextStyle(fontSize: 9, color: AppColors.warning, fontWeight: FontWeight.w500)),
+                          ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
