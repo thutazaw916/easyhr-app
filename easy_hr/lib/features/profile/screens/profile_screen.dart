@@ -143,8 +143,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _tile(context, isDark, Iconsax.user_edit, s['edit_profile'] ?? 'Edit Profile', null,
                 () => _showEditProfileSheet(context, ref, isDark, mm)),
               _tile(context, isDark, Iconsax.moon, s['dark_mode'] ?? 'Dark Mode', null, () {
-                ref.read(darkModeProvider.notifier).state = !darkMode;
-              }, trailing: Switch(value: darkMode, activeColor: AppColors.primary, onChanged: (v) => ref.read(darkModeProvider.notifier).state = v)),
+                ref.read(darkModeProvider.notifier).toggle();
+              }, trailing: Switch(value: darkMode, activeColor: AppColors.primary, onChanged: (v) => ref.read(darkModeProvider.notifier).set(v))),
               _tile(context, isDark, Iconsax.notification, s['notifications'] ?? 'Notifications', null,
                 () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()))),
 
@@ -281,7 +281,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _langBtn(WidgetRef ref, String code, String label, bool active, bool isDark) {
     return Expanded(
       child: GestureDetector(
-        onTap: () => ref.read(languageProvider.notifier).state = code,
+        onTap: () => ref.read(languageProvider.notifier).set(code),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(

@@ -449,12 +449,43 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(ref.read(apiServiceProvider));
 });
 
-final darkModeProvider = StateProvider<bool>((ref) {
-  final auth = ref.watch(authProvider);
-  return auth.user?.darkMode ?? false;
+// Persisted dark mode provider — saves to SharedPreferences
+class DarkModeNotifier extends StateNotifier<bool> {
+  DarkModeNotifier() : super(false) {
+    _load();
+  }
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool('dark_mode') ?? false;
+  }
+  void toggle() => set(!state);
+  void set(bool value) async {
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dark_mode', value);
+  }
+}
+
+final darkModeProvider = StateNotifierProvider<DarkModeNotifier, bool>((ref) {
+  return DarkModeNotifier();
 });
 
-final languageProvider = StateProvider<String>((ref) {
-  final auth = ref.watch(authProvider);
-  return auth.user?.language ?? 'mm';
+// Persisted language provider — saves to SharedPreferences
+class LanguageNotifier extends StateNotifier<String> {
+  LanguageNotifier() : super('mm') {
+    _load();
+  }
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getString('app_language') ?? 'mm';
+  }
+  void set(String value) async {
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_language', value);
+  }
+}
+
+final languageProvider = StateNotifierProvider<LanguageNotifier, String>((ref) {
+  return LanguageNotifier();
 });
