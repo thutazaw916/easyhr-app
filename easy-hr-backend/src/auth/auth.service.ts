@@ -277,17 +277,38 @@ export class AuthService {
       .eq('email', normalizedEmail)
       .maybeSingle();
 
+    let employee: any;
+
     if (!cred) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
+      // No credentials yet — check if employee exists (created via Google/Apple sign-in)
+      const { data: emp } = await db
+        .from('employees')
+        .select('*')
+        .eq('email', normalizedEmail)
+        .eq('is_active', true)
+        .maybeSingle();
 
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(dto.password, cred.password_hash);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
+      if (!emp) {
+        throw new UnauthorizedException('Invalid email or password');
+      }
 
-    const employee = cred.employee;
+      // Auto-create auth_credentials with the provided password (first email login = set password)
+      const hashedPassword = await bcrypt.hash(dto.password, 12);
+      await db.from('auth_credentials').upsert({
+        employee_id: emp.id,
+        email: normalizedEmail,
+        password_hash: hashedPassword,
+      }, { onConflict: 'email' });
+
+      employee = emp;
+    } else {
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(dto.password, cred.password_hash);
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('Invalid email or password');
+      }
+      employee = cred.employee;
+    }
 
     // Check if employee is active
     if (!employee.is_active) {
