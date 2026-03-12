@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
@@ -534,7 +535,11 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> with SingleTickerProv
                   }
                 } catch (e) {
                   setBS(() => submitting = false);
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ $e'), backgroundColor: AppColors.absent, behavior: SnackBarBehavior.floating));
+                  String errMsg = e.toString();
+                  if (e is DioException && e.response?.data is Map) {
+                    errMsg = e.response?.data['message'] ?? errMsg;
+                  }
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ $errMsg'), backgroundColor: AppColors.absent, behavior: SnackBarBehavior.floating));
                 }
               },
             )),
