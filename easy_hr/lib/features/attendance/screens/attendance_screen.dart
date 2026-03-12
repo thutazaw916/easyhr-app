@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/localization/app_strings.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_theme.dart';
 import 'qr_scan_screen.dart';
 
@@ -19,9 +22,14 @@ class AttendanceScreen extends ConsumerStatefulWidget {
 
 class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   bool _isCheckedIn = false;
+  bool _isCheckedOut = false;
   String? _checkInTime;
   String? _checkOutTime;
+  DateTime? _checkInDateTime;
   bool _isLoading = false;
+  double _totalHours = 0;
+  Timer? _workTimer;
+  List<Map<String, dynamic>> _historyRecords = [];
 
   // GPS State
   Position? _currentPosition;
@@ -42,12 +50,67 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   void initState() {
     super.initState();
     _initOfficeGps();
+    _loadTodayStatus();
+    _loadHistory();
   }
 
   @override
   void dispose() {
     _locationTimer?.cancel();
+    _workTimer?.cancel();
     super.dispose();
+  }
+
+  void _startWorkTimer() {
+    _workTimer?.cancel();
+    _workTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_checkInDateTime != null && !_isCheckedOut && mounted) {
+        setState(() {
+          _totalHours = DateTime.now().difference(_checkInDateTime!).inMinutes / 60.0;
+        });
+      }
+    });
+  }
+
+  Future<void> _loadTodayStatus() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final status = await api.getMyAttendanceStatus(
+        lat: _currentPosition?.latitude,
+        lng: _currentPosition?.longitude,
+      );
+      if (mounted) {
+        setState(() {
+          _isCheckedIn = status['checked_in'] == true;
+          _isCheckedOut = status['checked_out'] == true;
+          if (status['check_in_time'] != null) {
+            _checkInDateTime = DateTime.tryParse(status['check_in_time']);
+            _checkInTime = _checkInDateTime != null ? DateFormat('h:mm a').format(_checkInDateTime!.toLocal()) : null;
+          }
+          if (status['check_out_time'] != null) {
+            final co = DateTime.tryParse(status['check_out_time']);
+            _checkOutTime = co != null ? DateFormat('h:mm a').format(co.toLocal()) : null;
+          }
+          _totalHours = (status['total_hours'] ?? 0).toDouble();
+          if (_isCheckedIn && !_isCheckedOut && _checkInDateTime != null) {
+            _totalHours = DateTime.now().difference(_checkInDateTime!).inMinutes / 60.0;
+            _startWorkTimer();
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadHistory() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final result = await api.getMyAttendanceHistory();
+      if (mounted && result['records'] != null) {
+        setState(() {
+          _historyRecords = List<Map<String, dynamic>>.from(result['records']);
+        });
+      }
+    } catch (_) {}
   }
 
   void _startLocationTracking() {
@@ -152,28 +215,74 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return '${(meters / 1000).toStringAsFixed(1)}km';
   }
 
-  void _handleCheckIn() {
-    if (!_isWithinRadius || _isCheckedIn) return;
-    setState(() { _isCheckedIn = true; _isLoading = true; _checkInTime = TimeOfDay.now().format(context); });
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('✅ Check-in: $_checkInTime (${_distanceToOffice.toInt()}m)'),
-        backgroundColor: AppColors.present, behavior: SnackBarBehavior.floating,
-      ));
-    });
+  void _handleCheckIn() async {
+    if (_currentPosition == null || _isCheckedIn || _isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      final api = ref.read(apiServiceProvider);
+      final result = await api.checkIn(_currentPosition!.latitude, _currentPosition!.longitude);
+      if (mounted) {
+        final msg = result['message'] ?? 'Checked in!';
+        _checkInDateTime = DateTime.tryParse(result['attendance']?['check_in_time'] ?? '');
+        setState(() {
+          _isCheckedIn = true;
+          _isCheckedOut = false;
+          _checkInTime = _checkInDateTime != null ? DateFormat('h:mm a').format(_checkInDateTime!.toLocal()) : TimeOfDay.now().format(context);
+          _totalHours = 0;
+          _isLoading = false;
+        });
+        _startWorkTimer();
+        _loadHistory();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('✅ $msg'), backgroundColor: AppColors.present, behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        String errMsg = e.toString();
+        if (e is DioException && e.response?.data is Map) {
+          errMsg = e.response?.data['message'] ?? errMsg;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('❌ $errMsg'), backgroundColor: AppColors.absent, behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
   }
 
-  void _handleCheckOut() {
-    if (!_isCheckedIn) return;
-    setState(() { _isLoading = true; _checkOutTime = TimeOfDay.now().format(context); });
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) setState(() { _isLoading = false; _isCheckedIn = false; });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('✅ Check-out: $_checkOutTime'),
-        backgroundColor: AppColors.present, behavior: SnackBarBehavior.floating,
-      ));
-    });
+  void _handleCheckOut() async {
+    if (!_isCheckedIn || _isCheckedOut || _currentPosition == null || _isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      final api = ref.read(apiServiceProvider);
+      final result = await api.checkOut(_currentPosition!.latitude, _currentPosition!.longitude);
+      if (mounted) {
+        final msg = result['message'] ?? 'Checked out!';
+        _workTimer?.cancel();
+        setState(() {
+          _isCheckedOut = true;
+          _checkOutTime = DateFormat('h:mm a').format(DateTime.now());
+          _totalHours = (result['total_hours'] ?? _totalHours).toDouble();
+          _isLoading = false;
+        });
+        _loadHistory();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('✅ $msg'), backgroundColor: AppColors.present, behavior: SnackBarBehavior.floating,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        String errMsg = e.toString();
+        if (e is DioException && e.response?.data is Map) {
+          errMsg = e.response?.data['message'] ?? errMsg;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('❌ $errMsg'), backgroundColor: AppColors.absent, behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
   }
 
   @override
@@ -297,7 +406,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   // ==================== CHECK IN / OUT BUTTONS ====================
   Widget _buildCheckButtons(bool isDark, bool mm) {
     final bool canIn = _isWithinRadius && !_isCheckedIn && !_gpsLoading && _gpsError == null;
-    final bool canOut = _isCheckedIn && !_gpsLoading;
+    final bool canOut = _isCheckedIn && !_isCheckedOut && !_gpsLoading;
 
     return Row(
       children: [
@@ -367,13 +476,19 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
   // ==================== TIME CARDS ====================
   Widget _buildTimeCards(bool isDark, bool mm) {
+    String hoursDisplay = '--';
+    if (_isCheckedIn && _totalHours > 0) {
+      final h = _totalHours.floor();
+      final m = ((_totalHours - h) * 60).round();
+      hoursDisplay = '${h}h${m > 0 ? ' ${m}m' : ''}';
+    }
     return Row(
       children: [
         _timeCard(isDark, mm ? 'အဝင်' : 'In', _checkInTime ?? '--:--', AppColors.present),
         const SizedBox(width: 10),
         _timeCard(isDark, mm ? 'အထွက်' : 'Out', _checkOutTime ?? '--:--', AppColors.warning),
         const SizedBox(width: 10),
-        _timeCard(isDark, mm ? 'နာရီ' : 'Hours', _checkOutTime != null ? '8.0' : '--', AppColors.info),
+        _timeCard(isDark, mm ? 'နာရီ' : 'Hours', hoursDisplay, AppColors.info),
       ],
     );
   }
@@ -685,19 +800,32 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
   // ==================== RECENT HISTORY ====================
   Widget _buildRecentHistory(bool isDark, bool mm) {
-    final history = [
-      {'date': mm ? 'ယနေ့' : 'Today', 'in': _checkInTime ?? '--:--', 'out': _checkOutTime ?? '--:--', 'status': _isCheckedIn ? 'present' : 'none', 'label': _isCheckedIn ? (mm ? 'ရှိ' : 'Present') : '--'},
-      {'date': mm ? 'မနေ့' : 'Yesterday', 'in': '8:15 AM', 'out': '5:30 PM', 'status': 'present', 'label': mm ? 'ရှိ' : 'Present'},
-      {'date': '28 Feb', 'in': '9:10 AM', 'out': '5:00 PM', 'status': 'late', 'label': mm ? 'နောက်ကျ' : 'Late'},
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(mm ? 'မှတ်တမ်း' : 'Recent History', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         const SizedBox(height: 10),
-        ...history.map((h) {
-          final color = h['status'] == 'present' ? AppColors.present : h['status'] == 'late' ? AppColors.warning : AppColors.lightTextSecondary;
+        if (_historyRecords.isEmpty)
+          Container(
+            width: double.infinity, padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkCard : AppColors.lightCard,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, width: 0.5),
+            ),
+            child: Text(mm ? 'မှတ်တမ်း မရှိသေးပါ' : 'No attendance records yet',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary, fontSize: 13)),
+          ),
+        ..._historyRecords.take(10).map((h) {
+          final status = h['status']?.toString() ?? 'absent';
+          final color = status == 'present' ? AppColors.present : status == 'late' ? AppColors.warning : AppColors.absent;
+          final label = status == 'present' ? (mm ? 'ရှိ' : 'Present') : status == 'late' ? (mm ? 'နောက်ကျ' : 'Late') : (mm ? 'ပျက်ကွက်' : 'Absent');
+          final dateStr = h['date']?.toString() ?? '';
+          final d = DateTime.tryParse(dateStr);
+          final dateLabel = d != null ? DateFormat('dd MMM').format(d) : dateStr;
+          final ciTime = h['check_in_time'] != null ? DateFormat('h:mm a').format(DateTime.parse(h['check_in_time']).toLocal()) : '--:--';
+          final coTime = h['check_out_time'] != null ? DateFormat('h:mm a').format(DateTime.parse(h['check_out_time']).toLocal()) : '--:--';
           return Container(
             margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -709,13 +837,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(h['date']!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                Text('${h['in']} → ${h['out']}', style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
+                Text(dateLabel, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                Text('$ciTime → $coTime', style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
               ])),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                child: Text(h['label']!, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+                child: Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
               ),
             ]),
           );

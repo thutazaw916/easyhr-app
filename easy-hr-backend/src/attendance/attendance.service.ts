@@ -226,12 +226,84 @@ export class AttendanceService {
       throw new BadRequestException('Invalid or expired QR code');
     }
 
-    // 2. Proceed with check-in using branch location
-    return this.checkIn(employeeId, companyId, {
-      latitude: data.latitude || Number(branch.latitude),
-      longitude: data.longitude || Number(branch.longitude),
-      device_id: data.device_id,
-    });
+    // 2. Auto-assign branch to employee if not set
+    const { data: employee } = await db
+      .from('employees')
+      .select('branch_id')
+      .eq('id', employeeId)
+      .single();
+
+    if (!employee?.branch_id) {
+      await db.from('employees').update({ branch_id: branch.id }).eq('id', employeeId);
+    }
+
+    // 3. Proceed with check-in using branch location (skip GPS distance check for QR)
+    const today = new Date().toISOString().split('T')[0];
+
+    const { data: existing } = await db
+      .from('attendance')
+      .select('id, check_in_time')
+      .eq('employee_id', employeeId)
+      .eq('date', today)
+      .single();
+
+    if (existing?.check_in_time) {
+      throw new BadRequestException('Already checked in today at ' + new Date(existing.check_in_time).toLocaleTimeString());
+    }
+
+    // Check if late
+    const { data: company } = await db
+      .from('companies')
+      .select('work_start_time')
+      .eq('id', companyId)
+      .single();
+
+    const now = new Date();
+    const [startHour, startMin] = (company?.work_start_time || '09:00:00').split(':').map(Number);
+    const workStart = new Date(now);
+    workStart.setHours(startHour, startMin, 0, 0);
+
+    const isLate = now > workStart;
+    const lateMinutes = isLate ? Math.floor((now.getTime() - workStart.getTime()) / 60000) : 0;
+
+    const attendanceData = {
+      employee_id: employeeId,
+      company_id: companyId,
+      branch_id: branch.id,
+      date: today,
+      check_in_time: now.toISOString(),
+      check_in_latitude: data.latitude || Number(branch.latitude),
+      check_in_longitude: data.longitude || Number(branch.longitude),
+      check_in_method: 'qr',
+      status: isLate ? 'late' : 'present',
+      is_late: isLate,
+      late_minutes: lateMinutes,
+      is_mock_location: false,
+      device_id: data.device_id || null,
+    };
+
+    let result;
+    if (existing) {
+      const { data: updated, error } = await db
+        .from('attendance').update(attendanceData).eq('id', existing.id).select().single();
+      if (error) throw error;
+      result = updated;
+    } else {
+      const { data: created, error } = await db
+        .from('attendance').insert(attendanceData).select().single();
+      if (error) throw error;
+      result = created;
+    }
+
+    return {
+      message: isLate
+        ? `Checked in via QR (${lateMinutes} minutes late)`
+        : `Checked in via QR at ${branch.name}! Have a great day!`,
+      attendance: result,
+      branch_name: branch.name,
+      is_late: isLate,
+      late_minutes: lateMinutes,
+    };
   }
 
   // ============================================
