@@ -38,27 +38,37 @@ export class AttendanceService {
     let branchId = employee?.branch_id;
 
     if (!branchId) {
-      // Auto-assign: find nearest company branch with GPS configured
-      const { data: branches } = await db
+      // Auto-assign: first try branches with GPS, then fall back to any branch
+      const { data: gpsBranches } = await db
         .from('branches')
         .select('id, latitude, longitude, radius_meters, name')
         .eq('company_id', companyId)
         .not('latitude', 'is', null)
         .not('longitude', 'is', null);
 
-      if (!branches || branches.length === 0) {
-        throw new BadRequestException('No branches configured. Admin must set up a branch first.');
+      if (gpsBranches && gpsBranches.length > 0) {
+        // Find nearest branch with GPS
+        let nearest = gpsBranches[0];
+        let minDist = Infinity;
+        for (const b of gpsBranches) {
+          const d = this.calculateDistance(data.latitude, data.longitude, Number(b.latitude), Number(b.longitude));
+          if (d < minDist) { minDist = d; nearest = b; }
+        }
+        branchId = nearest.id;
+      } else {
+        // No GPS branches — just pick first branch in company
+        const { data: anyBranches } = await db
+          .from('branches')
+          .select('id, name')
+          .eq('company_id', companyId)
+          .limit(1);
+
+        if (!anyBranches || anyBranches.length === 0) {
+          throw new BadRequestException('No branches configured. Admin must set up a branch first.');
+        }
+        branchId = anyBranches[0].id;
       }
 
-      // Find nearest branch
-      let nearest = branches[0];
-      let minDist = Infinity;
-      for (const b of branches) {
-        const d = this.calculateDistance(data.latitude, data.longitude, Number(b.latitude), Number(b.longitude));
-        if (d < minDist) { minDist = d; nearest = b; }
-      }
-
-      branchId = nearest.id;
       // Auto-assign branch to employee
       await db.from('employees').update({ branch_id: branchId }).eq('id', employeeId);
     }
@@ -69,21 +79,19 @@ export class AttendanceService {
       .eq('id', branchId)
       .single();
 
-    if (!branch?.latitude || !branch?.longitude) {
-      throw new BadRequestException('Branch GPS not configured. Contact your admin.');
-    }
-
-    // 3. Calculate distance between employee and branch
-    const distance = this.calculateDistance(
-      data.latitude, data.longitude,
-      Number(branch.latitude), Number(branch.longitude)
-    );
-
-    if (distance > branch.radius_meters) {
-      throw new BadRequestException(
-        `You are ${Math.round(distance)}m away from ${branch.name}. ` +
-        `You need to be within ${branch.radius_meters}m to check in.`
+    // 3. Calculate distance (skip if branch has no GPS configured)
+    if (branch?.latitude && branch?.longitude && branch?.radius_meters) {
+      const distance = this.calculateDistance(
+        data.latitude, data.longitude,
+        Number(branch.latitude), Number(branch.longitude)
       );
+
+      if (distance > branch.radius_meters) {
+        throw new BadRequestException(
+          `You are ${Math.round(distance)}m away from ${branch?.name || 'office'}. ` +
+          `You need to be within ${branch.radius_meters}m to check in.`
+        );
+      }
     }
 
     // 4. Check if late
@@ -144,7 +152,6 @@ export class AttendanceService {
         ? `Checked in (${lateMinutes} minutes late)`
         : 'Checked in successfully! Have a great day!',
       attendance: result,
-      distance_meters: Math.round(distance),
       is_late: isLate,
       late_minutes: lateMinutes,
     };
