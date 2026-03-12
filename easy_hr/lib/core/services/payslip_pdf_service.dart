@@ -44,15 +44,26 @@ class PayslipPdfService {
     'phone_allowance': 'ဖုန်းစရိတ်',
     'housing': 'အိမ်ခန်းစရိတ်',
     'other_allowance': 'အခြားစရိတ်',
+    'position_allowance': 'ရာထူးစရိတ်',
     'overtime': 'အချိန်ပိုကြေး',
     'ot_hours': 'အချိန်ပိုနာရီ',
     'attendance_bonus': 'ရက်မှန်ကြေး',
     'bonus': 'ဆုကြေး',
-    'total_earnings': 'စုစုပေါင်းရရှိငွေ',
+    'performance_bonus': 'စွမ်းဆောင်ရည်ဆုကြေး',
+    'incentive': 'မက်လုံး',
+    'commission': 'ကော်မရှင်',
+    'other_earnings': 'အခြားရရှိငွေ',
+    'total_earnings': 'စုစုပေါင်းဝင်ငွေ',
     'deductions': 'နုတ်ယူငွေ',
     'ssb': 'လူမှုဖူလုံရေး (SSB)',
     'income_tax': 'ဝင်ငွေခွန်',
     'advance': 'ကြိုတင်ထုတ်ငွေ',
+    'absent_ded': 'ပျက်ကွက်နုတ်ငွေ',
+    'unpaid_leave_ded': 'ခွင့်မဲ့နုတ်ငွေ',
+    'late_ded': 'နောက်ကျနုတ်ငွေ',
+    'loan_ded': 'ချေးငွေပြန်ဆပ်',
+    'insurance_ded': 'အာမခံ',
+    'uniform_ded': 'ယူနီဖောင်းနုတ်ငွေ',
     'other_deductions': 'အခြားနုတ်ယူငွေ',
     'total_deductions': 'စုစုပေါင်းနုတ်ယူငွေ',
     'net_salary': 'လက်ခံရရှိငွေ',
@@ -88,15 +99,26 @@ class PayslipPdfService {
     'phone_allowance': 'Phone Allowance',
     'housing': 'Housing Allowance',
     'other_allowance': 'Other Allowance',
+    'position_allowance': 'Position Allowance',
     'overtime': 'Overtime Pay',
     'ot_hours': 'OT Hours',
     'attendance_bonus': 'Attendance Bonus',
     'bonus': 'Bonus',
-    'total_earnings': 'Total Earnings',
+    'performance_bonus': 'Performance Bonus',
+    'incentive': 'Incentive',
+    'commission': 'Commission',
+    'other_earnings': 'Other Earnings',
+    'total_earnings': 'Gross Salary',
     'deductions': 'DEDUCTIONS',
     'ssb': 'Social Security Board (SSB)',
     'income_tax': 'Income Tax',
     'advance': 'Salary Advance Deduction',
+    'absent_ded': 'Absent Deduction',
+    'unpaid_leave_ded': 'Unpaid Leave Deduction',
+    'late_ded': 'Late Deduction',
+    'loan_ded': 'Loan Repayment',
+    'insurance_ded': 'Insurance',
+    'uniform_ded': 'Uniform Deduction',
     'other_deductions': 'Other Deductions',
     'total_deductions': 'Total Deductions',
     'net_salary': 'Net Pay',
@@ -112,23 +134,33 @@ class PayslipPdfService {
     final monthName = DateFormat('MMMM yyyy').format(DateTime(year, month));
     final s = _l(lang);
 
-    // Extract data
+    // Extract data - All individual components
     final basicSalary = _n(payslip['basic_salary']);
-    final transportAllowance = _n(payslip['transport_allowance'] ?? payslip['total_allowances']);
+    final transportAllowance = _n(payslip['transport_allowance']);
     final mealAllowance = _n(payslip['meal_allowance']);
     final phoneAllowance = _n(payslip['phone_allowance']);
     final housingAllowance = _n(payslip['housing_allowance']);
+    final positionAllowance = _n(payslip['position_allowance']);
     final otherAllowance = _n(payslip['other_allowance']);
     final totalAllowances = _n(payslip['total_allowances']);
     final otHours = _n(payslip['ot_hours']);
     final otAmount = _n(payslip['ot_amount']);
     final attendanceBonus = _n(payslip['attendance_bonus']);
+    final performanceBonus = _n(payslip['performance_bonus']);
+    final incentive = _n(payslip['incentive']);
+    final commission = _n(payslip['commission']);
     final bonus = _n(payslip['bonus']);
     final otherEarnings = _n(payslip['other_earnings']);
     final grossSalary = _n(payslip['gross_salary']);
     final ssbAmount = _n(payslip['ssb_amount']);
     final taxAmount = _n(payslip['tax_amount']);
     final advanceDeduction = _n(payslip['advance_deduction']);
+    final absentDeduction = _n(payslip['absent_deduction']);
+    final unpaidLeaveDeduction = _n(payslip['unpaid_leave_deduction']);
+    final lateDeduction = _n(payslip['late_deduction']);
+    final loanDeduction = _n(payslip['loan_deduction']);
+    final insuranceDeduction = _n(payslip['insurance_deduction']);
+    final uniformDeduction = _n(payslip['uniform_deduction']);
     final otherDeductions = _n(payslip['other_deductions']);
     final totalDeductions = _n(payslip['total_deductions']);
     final netSalary = _n(payslip['net_salary']);
@@ -301,18 +333,21 @@ class PayslipPdfService {
               // ═══════════ EARNINGS TABLE ═══════════
               _sectionHeader(s['earnings']!, s['description']!, s['amount']!, green),
               _earningRow(s['basic_salary']!, basicSalary),
-              if (totalAllowances > 0) ...[
-                if (mealAllowance > 0) _earningRow(s['meal']!, mealAllowance),
-                if (transportAllowance > 0 && mealAllowance > 0) _earningRow(s['transport']!, transportAllowance)
-                else if (totalAllowances > 0 && mealAllowance == 0) _earningRow(lang == 'mm' ? 'စုစုပေါင်းစရိတ်' : 'Total Allowances', totalAllowances),
-                if (phoneAllowance > 0) _earningRow(s['phone_allowance']!, phoneAllowance),
-                if (housingAllowance > 0) _earningRow(s['housing']!, housingAllowance),
-                if (otherAllowance > 0) _earningRow(s['other_allowance']!, otherAllowance),
-              ],
-              if (otAmount > 0) _earningRow('${s['overtime']!} (${otHours.toStringAsFixed(1)}h)', otAmount),
+              if (transportAllowance > 0) _earningRow(s['transport']!, transportAllowance),
+              if (mealAllowance > 0) _earningRow(s['meal']!, mealAllowance),
+              if (phoneAllowance > 0) _earningRow(s['phone_allowance']!, phoneAllowance),
+              if (housingAllowance > 0) _earningRow(s['housing']!, housingAllowance),
+              if (positionAllowance > 0) _earningRow(s['position_allowance']!, positionAllowance),
+              if (otherAllowance > 0) _earningRow(s['other_allowance']!, otherAllowance),
+              if (totalAllowances > 0 && transportAllowance == 0 && mealAllowance == 0)
+                _earningRow(lang == 'mm' ? 'စုစုပေါင်းစရိတ်' : 'Total Allowances', totalAllowances),
               if (attendanceBonus > 0) _earningRow(s['attendance_bonus']!, attendanceBonus),
-              if (bonus > 0) _earningRow(s['bonus']!, bonus),
-              if (otherEarnings > 0) _earningRow(payslip['other_earnings_description']?.toString() ?? (lang == 'mm' ? 'အခြားရရှိငွေ' : 'Other Earnings'), otherEarnings),
+              if (otAmount > 0) _earningRow('${s['overtime']!} (${otHours.toStringAsFixed(1)}h)', otAmount),
+              if (performanceBonus > 0) _earningRow(s['performance_bonus']!, performanceBonus),
+              if (incentive > 0) _earningRow(s['incentive']!, incentive),
+              if (commission > 0) _earningRow(s['commission']!, commission),
+              if (bonus > 0) _earningRow(payslip['bonus_description']?.toString().isNotEmpty == true ? payslip['bonus_description'].toString() : s['bonus']!, bonus),
+              if (otherEarnings > 0) _earningRow(payslip['other_earnings_description']?.toString().isNotEmpty == true ? payslip['other_earnings_description'].toString() : s['other_earnings']!, otherEarnings),
               pw.Container(
                 width: double.infinity,
                 padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -332,7 +367,13 @@ class PayslipPdfService {
               if (ssbAmount > 0) _earningRow(s['ssb']!, ssbAmount),
               if (taxAmount > 0) _earningRow(s['income_tax']!, taxAmount),
               if (advanceDeduction > 0) _earningRow(s['advance']!, advanceDeduction),
-              if (otherDeductions > 0) _earningRow(payslip['other_deductions_description']?.toString() ?? s['other_deductions']!, otherDeductions),
+              if (absentDeduction > 0) _earningRow(s['absent_ded']!, absentDeduction),
+              if (unpaidLeaveDeduction > 0) _earningRow(s['unpaid_leave_ded']!, unpaidLeaveDeduction),
+              if (lateDeduction > 0) _earningRow(s['late_ded']!, lateDeduction),
+              if (loanDeduction > 0) _earningRow(s['loan_ded']!, loanDeduction),
+              if (insuranceDeduction > 0) _earningRow(s['insurance_ded']!, insuranceDeduction),
+              if (uniformDeduction > 0) _earningRow(s['uniform_ded']!, uniformDeduction),
+              if (otherDeductions > 0) _earningRow(payslip['other_deductions_description']?.toString().isNotEmpty == true ? payslip['other_deductions_description'].toString() : s['other_deductions']!, otherDeductions),
               if (totalDeductions == 0) _earningRow('-', 0),
               pw.Container(
                 width: double.infinity,

@@ -855,35 +855,63 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> with SingleTicker
 
         const SizedBox(height: 14),
 
-        // Earnings Section
-        _buildPayslipSection(isDark, isMm ? 'ရရှိငွေ' : 'Earnings', AppColors.present, [
+        // Earnings Section - Individual Breakdown
+        _buildPayslipSection(isDark, isMm ? 'ဝင်ငွေအသေးစိတ်' : 'Earnings', AppColors.present, [
           _buildPayslipRow(isMm ? 'အခြေခံလစာ' : 'Basic Salary', _formatMoneyFull(basicSalary), AppColors.present),
-          if (totalAllowances > 0)
-            _buildPayslipRow(isMm ? 'စုစုပေါင်းစရိတ်' : 'Total Allowances', _formatMoneyFull(totalAllowances), AppColors.present),
-          if (otAmount > 0)
-            _buildPayslipRow(isMm ? 'အချိန်ပိုကြေး (${otHours.toStringAsFixed(1)}h)' : 'Overtime (${otHours.toStringAsFixed(1)}h)', _formatMoneyFull(otAmount), AppColors.present),
+          if (_toDouble(payslip['transport_allowance']) > 0)
+            _buildPayslipRow(isMm ? 'သွားလာစရိတ်' : 'Transport Allowance', _formatMoneyFull(_toDouble(payslip['transport_allowance'])), AppColors.present),
+          if (_toDouble(payslip['meal_allowance']) > 0)
+            _buildPayslipRow(isMm ? 'ထမင်းစရိတ်' : 'Meal Allowance', _formatMoneyFull(_toDouble(payslip['meal_allowance'])), AppColors.present),
+          if (_toDouble(payslip['phone_allowance']) > 0)
+            _buildPayslipRow(isMm ? 'ဖုန်းစရိတ်' : 'Phone Allowance', _formatMoneyFull(_toDouble(payslip['phone_allowance'])), AppColors.present),
+          if (_toDouble(payslip['housing_allowance']) > 0)
+            _buildPayslipRow(isMm ? 'အိမ်ခန်းစရိတ်' : 'Housing Allowance', _formatMoneyFull(_toDouble(payslip['housing_allowance'])), AppColors.present),
+          if (_toDouble(payslip['position_allowance']) > 0)
+            _buildPayslipRow(isMm ? 'ရာထူးစရိတ်' : 'Position Allowance', _formatMoneyFull(_toDouble(payslip['position_allowance'])), AppColors.present),
+          if (_toDouble(payslip['other_allowance']) > 0)
+            _buildPayslipRow(isMm ? 'အခြားစရိတ်' : 'Other Allowance', _formatMoneyFull(_toDouble(payslip['other_allowance'])), AppColors.present),
           if (attendanceBonus > 0)
             _buildPayslipRow(isMm ? 'ရက်မှန်ကြေး' : 'Attendance Bonus', _formatMoneyFull(attendanceBonus), AppColors.present),
+          if (otAmount > 0)
+            _buildPayslipRow(isMm ? 'အချိန်ပိုကြေး (${otHours.toStringAsFixed(1)}h)' : 'Overtime (${otHours.toStringAsFixed(1)}h)', _formatMoneyFull(otAmount), AppColors.present),
+          if (_toDouble(payslip['performance_bonus']) > 0)
+            _buildPayslipRow(isMm ? 'စွမ်းဆောင်ရည်ဆုကြေး' : 'Performance Bonus', _formatMoneyFull(_toDouble(payslip['performance_bonus'])), AppColors.present),
+          if (_toDouble(payslip['incentive']) > 0)
+            _buildPayslipRow(isMm ? 'မက်လုံး' : 'Incentive', _formatMoneyFull(_toDouble(payslip['incentive'])), AppColors.present),
+          if (_toDouble(payslip['commission']) > 0)
+            _buildPayslipRow(isMm ? 'ကော်မရှင်' : 'Commission', _formatMoneyFull(_toDouble(payslip['commission'])), AppColors.present),
           if (bonus > 0)
-            _buildPayslipRow(payslip['bonus_description']?.toString() ?? (isMm ? 'ဆုကြေး' : 'Bonus'), _formatMoneyFull(bonus), AppColors.present),
+            _buildPayslipRow(payslip['bonus_description']?.toString().isNotEmpty == true ? payslip['bonus_description'].toString() : (isMm ? 'ဆုကြေး' : 'Bonus'), _formatMoneyFull(bonus), AppColors.present),
           if (otherEarnings > 0)
-            _buildPayslipRow(payslip['other_earnings_description']?.toString() ?? (isMm ? 'အခြားရရှိငွေ' : 'Other Earnings'), _formatMoneyFull(otherEarnings), AppColors.present),
+            _buildPayslipRow(payslip['other_earnings_description']?.toString().isNotEmpty == true ? payslip['other_earnings_description'].toString() : (isMm ? 'အခြားရရှိငွေ' : 'Other Earnings'), _formatMoneyFull(otherEarnings), AppColors.present),
           const Divider(height: 16),
-          _buildPayslipRow(isMm ? 'စုစုပေါင်းရရှိငွေ' : 'Gross Salary', _formatMoneyFull(grossSalary), AppColors.primary, isBold: true),
+          _buildPayslipRow(isMm ? 'စုစုပေါင်းဝင်ငွေ' : 'Gross Salary', _formatMoneyFull(grossSalary), AppColors.primary, isBold: true),
         ]),
 
         const SizedBox(height: 12),
 
-        // Deductions Section
-        _buildPayslipSection(isDark, isMm ? 'နုတ်ယူငွေ' : 'Deductions', AppColors.absent, [
+        // Deductions Section - Individual Breakdown
+        _buildPayslipSection(isDark, isMm ? 'နုတ်ယူငွေအသေးစိတ်' : 'Deductions', AppColors.absent, [
           if (ssbAmount > 0)
-            _buildPayslipRow(isMm ? 'လူမှုဖူလုံရေး (SSB)' : 'SSB', _formatMoneyFull(ssbAmount), AppColors.absent),
+            _buildPayslipRow(isMm ? 'လူမှုဖူလုံရေး (SSB)' : 'Social Security (SSB)', _formatMoneyFull(ssbAmount), AppColors.absent),
           if (taxAmount > 0)
             _buildPayslipRow(isMm ? 'ဝင်ငွေခွန်' : 'Income Tax', _formatMoneyFull(taxAmount), AppColors.absent),
           if (advanceDeduction > 0)
             _buildPayslipRow(isMm ? 'ကြိုတင်ထုတ်ငွေ' : 'Salary Advance', _formatMoneyFull(advanceDeduction), AppColors.warning),
+          if (_toDouble(payslip['absent_deduction']) > 0)
+            _buildPayslipRow(isMm ? 'ပျက်ကွက်နုတ်ငွေ' : 'Absent Deduction', _formatMoneyFull(_toDouble(payslip['absent_deduction'])), AppColors.absent),
+          if (_toDouble(payslip['unpaid_leave_deduction']) > 0)
+            _buildPayslipRow(isMm ? 'ခွင့်မဲ့နုတ်ငွေ' : 'Unpaid Leave Ded.', _formatMoneyFull(_toDouble(payslip['unpaid_leave_deduction'])), AppColors.absent),
+          if (_toDouble(payslip['late_deduction']) > 0)
+            _buildPayslipRow(isMm ? 'နောက်ကျနုတ်ငွေ' : 'Late Deduction', _formatMoneyFull(_toDouble(payslip['late_deduction'])), AppColors.absent),
+          if (_toDouble(payslip['loan_deduction']) > 0)
+            _buildPayslipRow(isMm ? 'ချေးငွေပြန်ဆပ်' : 'Loan Repayment', _formatMoneyFull(_toDouble(payslip['loan_deduction'])), AppColors.absent),
+          if (_toDouble(payslip['insurance_deduction']) > 0)
+            _buildPayslipRow(isMm ? 'အာမခံ' : 'Insurance', _formatMoneyFull(_toDouble(payslip['insurance_deduction'])), AppColors.absent),
+          if (_toDouble(payslip['uniform_deduction']) > 0)
+            _buildPayslipRow(isMm ? 'ယူနီဖောင်းနုတ်ငွေ' : 'Uniform Deduction', _formatMoneyFull(_toDouble(payslip['uniform_deduction'])), AppColors.absent),
           if (otherDeductions > 0)
-            _buildPayslipRow(payslip['other_deductions_description']?.toString() ?? (isMm ? 'အခြားနုတ်ယူငွေ' : 'Other Deductions'), _formatMoneyFull(otherDeductions), AppColors.absent),
+            _buildPayslipRow(payslip['other_deductions_description']?.toString().isNotEmpty == true ? payslip['other_deductions_description'].toString() : (isMm ? 'အခြားနုတ်ယူငွေ' : 'Other Deductions'), _formatMoneyFull(otherDeductions), AppColors.absent),
           if (totalDeductions == 0)
             _buildPayslipRow(isMm ? 'နုတ်ယူငွေမရှိ' : 'No deductions', '-', Colors.grey),
           const Divider(height: 16),
@@ -995,108 +1023,209 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> with SingleTicker
   }
 
   void _showEditPaymentDialog(bool isDark, Map<String, dynamic> payslip) {
-    final bonusC = TextEditingController(text: '${(payslip['bonus'] ?? 0)}');
-    final bonusDescC = TextEditingController(text: payslip['bonus_description']?.toString() ?? '');
-    final otherEarningsC = TextEditingController(text: '${(payslip['other_earnings'] ?? 0)}');
-    final otherEarningsDescC = TextEditingController(text: payslip['other_earnings_description']?.toString() ?? '');
-    final otherDeductionsC = TextEditingController(text: '${(payslip['other_deductions'] ?? 0)}');
-    final otherDeductionsDescC = TextEditingController(text: payslip['other_deductions_description']?.toString() ?? '');
+    // Earnings controllers
+    final cBasic = TextEditingController(text: '${payslip['basic_salary'] ?? 0}');
+    final cAttendanceBonus = TextEditingController(text: '${payslip['attendance_bonus'] ?? 0}');
+    final cOtAmount = TextEditingController(text: '${payslip['ot_amount'] ?? 0}');
+    final cTransport = TextEditingController(text: '${payslip['transport_allowance'] ?? 0}');
+    final cMeal = TextEditingController(text: '${payslip['meal_allowance'] ?? 0}');
+    final cPhone = TextEditingController(text: '${payslip['phone_allowance'] ?? 0}');
+    final cHousing = TextEditingController(text: '${payslip['housing_allowance'] ?? 0}');
+    final cPosition = TextEditingController(text: '${payslip['position_allowance'] ?? 0}');
+    final cOtherAllowance = TextEditingController(text: '${payslip['other_allowance'] ?? 0}');
+    final cPerfBonus = TextEditingController(text: '${payslip['performance_bonus'] ?? 0}');
+    final cIncentive = TextEditingController(text: '${payslip['incentive'] ?? 0}');
+    final cCommission = TextEditingController(text: '${payslip['commission'] ?? 0}');
+    final cBonus = TextEditingController(text: '${payslip['bonus'] ?? 0}');
+    final cBonusDesc = TextEditingController(text: payslip['bonus_description']?.toString() ?? '');
+    final cOtherEarnings = TextEditingController(text: '${payslip['other_earnings'] ?? 0}');
+    final cOtherEarningsDesc = TextEditingController(text: payslip['other_earnings_description']?.toString() ?? '');
+    // Deductions controllers
+    final cSsb = TextEditingController(text: '${payslip['ssb_amount'] ?? 0}');
+    final cTax = TextEditingController(text: '${payslip['tax_amount'] ?? 0}');
+    final cAdvance = TextEditingController(text: '${payslip['advance_deduction'] ?? 0}');
+    final cAbsentDed = TextEditingController(text: '${payslip['absent_deduction'] ?? 0}');
+    final cUnpaidLeave = TextEditingController(text: '${payslip['unpaid_leave_deduction'] ?? 0}');
+    final cLateDed = TextEditingController(text: '${payslip['late_deduction'] ?? 0}');
+    final cLoan = TextEditingController(text: '${payslip['loan_deduction'] ?? 0}');
+    final cInsurance = TextEditingController(text: '${payslip['insurance_deduction'] ?? 0}');
+    final cUniform = TextEditingController(text: '${payslip['uniform_deduction'] ?? 0}');
+    final cOtherDed = TextEditingController(text: '${payslip['other_deductions'] ?? 0}');
+    final cOtherDedDesc = TextEditingController(text: payslip['other_deductions_description']?.toString() ?? '');
     bool saving = false;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: isDark ? AppColors.darkBg : Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(builder: (ctx, setBS) {
-        return Padding(
-          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: SingleChildScrollView(
+        Widget field(String label, TextEditingController c, {bool desc = false}) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: TextField(
+              controller: c,
+              keyboardType: desc ? TextInputType.text : const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                labelText: label,
+                labelStyle: const TextStyle(fontSize: 11),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          );
+        }
+
+        Widget sectionHeader(String title, Color color, IconData icon) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 10, bottom: 6),
+            child: Row(children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 6),
+              Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color)),
+            ]),
+          );
+        }
+
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          maxChildSize: 0.95,
+          minChildSize: 0.5,
+          expand: false,
+          builder: (_, scrollC) => Padding(
+            padding: EdgeInsets.only(left: 16, right: 16, top: 12, bottom: MediaQuery.of(ctx).viewInsets.bottom + 12),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
-                const SizedBox(height: 16),
-                Text('Edit Payment', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(DateFormat('MMMM yyyy').format(DateTime(_selectedYear, _selectedMonth)),
-                    style: TextStyle(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 18),
-                const Text('Bonus / ဆုကြေး', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                const SizedBox(height: 6),
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 10),
                 Row(children: [
-                  Expanded(child: _buildSalaryField('Amount (MMK)', bonusC, Iconsax.money_send)),
+                  const Icon(Iconsax.edit, size: 20, color: AppColors.primary),
                   const SizedBox(width: 8),
-                  Expanded(child: TextField(
-                    controller: bonusDescC,
-                    decoration: InputDecoration(
-                      labelText: 'Description',
-                      labelStyle: const TextStyle(fontSize: 12),
-                      prefixIcon: const Icon(Iconsax.note, size: 18),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    ),
-                  )),
+                  Text('Edit Payment', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  Text(DateFormat('MMM yyyy').format(DateTime(_selectedYear, _selectedMonth)),
+                      style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600)),
                 ]),
-                const SizedBox(height: 14),
-                const Text('Other Earnings / အခြားရရှိငွေ', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                 const SizedBox(height: 6),
-                Row(children: [
-                  Expanded(child: _buildSalaryField('Amount (MMK)', otherEarningsC, Iconsax.money_add)),
-                  const SizedBox(width: 8),
-                  Expanded(child: TextField(
-                    controller: otherEarningsDescC,
-                    decoration: InputDecoration(
-                      labelText: 'Description',
-                      labelStyle: const TextStyle(fontSize: 12),
-                      prefixIcon: const Icon(Iconsax.note, size: 18),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    ),
-                  )),
-                ]),
-                const SizedBox(height: 14),
-                const Text('Other Deductions / အခြားနုတ်ယူငွေ', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                Expanded(
+                  child: ListView(
+                    controller: scrollC,
+                    children: [
+                      // ── EARNINGS ──
+                      sectionHeader('ဝင်ငွေ / Earnings', AppColors.present, Iconsax.money_add),
+                      field('Basic Salary / အခြေခံလစာ', cBasic),
+                      Row(children: [
+                        Expanded(child: field('Transport / သွားလာစရိတ်', cTransport)),
+                        const SizedBox(width: 6),
+                        Expanded(child: field('Meal / ထမင်းစရိတ်', cMeal)),
+                      ]),
+                      Row(children: [
+                        Expanded(child: field('Phone / ဖုန်းစရိတ်', cPhone)),
+                        const SizedBox(width: 6),
+                        Expanded(child: field('Housing / အိမ်ခန်းစရိတ်', cHousing)),
+                      ]),
+                      Row(children: [
+                        Expanded(child: field('Position / ရာထူးစရိတ်', cPosition)),
+                        const SizedBox(width: 6),
+                        Expanded(child: field('Other Allow / အခြားစရိတ်', cOtherAllowance)),
+                      ]),
+                      field('Attendance Bonus / ရက်မှန်ကြေး', cAttendanceBonus),
+                      field('Overtime / အချိန်ပိုကြေး', cOtAmount),
+                      Row(children: [
+                        Expanded(child: field('Perf. Bonus / စွမ်းဆောင်ရည်', cPerfBonus)),
+                        const SizedBox(width: 6),
+                        Expanded(child: field('Incentive / မက်လုံး', cIncentive)),
+                      ]),
+                      Row(children: [
+                        Expanded(child: field('Commission / ကော်မရှင်', cCommission)),
+                        const SizedBox(width: 6),
+                        Expanded(child: field('Bonus / ဆုကြေး', cBonus)),
+                      ]),
+                      field('Bonus Desc', cBonusDesc, desc: true),
+                      field('Other Earnings / အခြားရရှိငွေ', cOtherEarnings),
+                      field('Other Earnings Desc', cOtherEarningsDesc, desc: true),
+
+                      // ── DEDUCTIONS ──
+                      sectionHeader('နုတ်ယူငွေ / Deductions', AppColors.absent, Iconsax.money_remove),
+                      Row(children: [
+                        Expanded(child: field('SSB / လူမှုဖူလုံရေး', cSsb)),
+                        const SizedBox(width: 6),
+                        Expanded(child: field('Tax / ဝင်ငွေခွန်', cTax)),
+                      ]),
+                      Row(children: [
+                        Expanded(child: field('Advance / ကြိုတင်ထုတ်', cAdvance)),
+                        const SizedBox(width: 6),
+                        Expanded(child: field('Absent / ပျက်ကွက်နုတ်', cAbsentDed)),
+                      ]),
+                      Row(children: [
+                        Expanded(child: field('Unpaid Leave / ခွင့်မဲ့နုတ်', cUnpaidLeave)),
+                        const SizedBox(width: 6),
+                        Expanded(child: field('Late / နောက်ကျနုတ်', cLateDed)),
+                      ]),
+                      Row(children: [
+                        Expanded(child: field('Loan / ချေးငွေပြန်ဆပ်', cLoan)),
+                        const SizedBox(width: 6),
+                        Expanded(child: field('Insurance / အာမခံ', cInsurance)),
+                      ]),
+                      Row(children: [
+                        Expanded(child: field('Uniform / ယူနီဖောင်း', cUniform)),
+                        const SizedBox(width: 6),
+                        Expanded(child: field('Other Ded / အခြားနုတ်', cOtherDed)),
+                      ]),
+                      field('Other Deductions Desc', cOtherDedDesc, desc: true),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Row(children: [
-                  Expanded(child: _buildSalaryField('Amount (MMK)', otherDeductionsC, Iconsax.money_remove)),
-                  const SizedBox(width: 8),
-                  Expanded(child: TextField(
-                    controller: otherDeductionsDescC,
-                    decoration: InputDecoration(
-                      labelText: 'Description',
-                      labelStyle: const TextStyle(fontSize: 12),
-                      prefixIcon: const Icon(Iconsax.note, size: 18),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    ),
-                  )),
-                ]),
-                const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
-                  height: 50,
+                  height: 48,
                   child: ElevatedButton.icon(
                     icon: saving
                         ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Iconsax.tick_circle, size: 18),
-                    label: Text(saving ? 'Saving...' : 'Save Changes', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    label: Text(saving ? 'Saving...' : 'Save All Changes', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                     onPressed: saving ? null : () async {
                       setBS(() => saving = true);
                       try {
+                        double p(TextEditingController c) => double.tryParse(c.text) ?? 0;
                         final api = ref.read(apiServiceProvider);
                         await api.adjustPayroll(payslip['id'].toString(), {
-                          'bonus': double.tryParse(bonusC.text) ?? 0,
-                          'bonus_description': bonusDescC.text.trim(),
-                          'other_earnings': double.tryParse(otherEarningsC.text) ?? 0,
-                          'other_earnings_description': otherEarningsDescC.text.trim(),
-                          'other_deductions': double.tryParse(otherDeductionsC.text) ?? 0,
-                          'other_deductions_description': otherDeductionsDescC.text.trim(),
+                          'basic_salary': p(cBasic),
+                          'attendance_bonus': p(cAttendanceBonus),
+                          'ot_amount': p(cOtAmount),
+                          'transport_allowance': p(cTransport),
+                          'meal_allowance': p(cMeal),
+                          'phone_allowance': p(cPhone),
+                          'housing_allowance': p(cHousing),
+                          'position_allowance': p(cPosition),
+                          'other_allowance': p(cOtherAllowance),
+                          'performance_bonus': p(cPerfBonus),
+                          'incentive': p(cIncentive),
+                          'commission': p(cCommission),
+                          'bonus': p(cBonus),
+                          'bonus_description': cBonusDesc.text.trim(),
+                          'other_earnings': p(cOtherEarnings),
+                          'other_earnings_description': cOtherEarningsDesc.text.trim(),
+                          'ssb_amount': p(cSsb),
+                          'tax_amount': p(cTax),
+                          'advance_deduction': p(cAdvance),
+                          'absent_deduction': p(cAbsentDed),
+                          'unpaid_leave_deduction': p(cUnpaidLeave),
+                          'late_deduction': p(cLateDed),
+                          'loan_deduction': p(cLoan),
+                          'insurance_deduction': p(cInsurance),
+                          'uniform_deduction': p(cUniform),
+                          'other_deductions': p(cOtherDed),
+                          'other_deductions_description': cOtherDedDesc.text.trim(),
                         });
                         if (mounted) {
                           Navigator.pop(ctx);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Payment updated'), backgroundColor: AppColors.present, behavior: SnackBarBehavior.floating),
+                            const SnackBar(content: Text('Payment updated successfully'), backgroundColor: AppColors.present, behavior: SnackBarBehavior.floating),
                           );
                           _loadData();
                         }

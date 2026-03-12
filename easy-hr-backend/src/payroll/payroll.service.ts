@@ -283,7 +283,7 @@ export class PayrollService {
         return !lt?.is_paid;
       }).reduce((sum: number, l: any) => sum + l.total_days, 0) || 0;
 
-      // 4. Calculate earnings
+      // 4. Calculate earnings (individual breakdowns)
       const basicSalary = Number(structure.basic_salary);
       const dailyRate = basicSalary / totalWorkingDays;
 
@@ -293,27 +293,37 @@ export class PayrollService {
       // OT calculation
       const otAmount = totalOTHours * Number(structure.ot_rate_per_hour);
 
-      // Allowances
-      const totalAllowances =
-        Number(structure.transport_allowance) +
-        Number(structure.meal_allowance) +
-        Number(structure.phone_allowance) +
-        Number(structure.housing_allowance) +
-        Number(structure.other_allowance);
+      // Individual allowances
+      const transportAllowance = Number(structure.transport_allowance) || 0;
+      const mealAllowance = Number(structure.meal_allowance) || 0;
+      const phoneAllowance = Number(structure.phone_allowance) || 0;
+      const housingAllowance = Number(structure.housing_allowance) || 0;
+      const positionAllowance = Number(structure.position_allowance) || 0;
+      const otherAllowance = Number(structure.other_allowance) || 0;
+      const performanceBonus = Number(structure.performance_bonus) || 0;
+      const incentive = Number(structure.incentive) || 0;
+      const commission = Number(structure.commission) || 0;
 
-      // Deduction for unpaid leave / absent
-      const absentDeduction = (daysAbsent > 0 ? daysAbsent : 0) * dailyRate;
+      const totalAllowances = transportAllowance + mealAllowance + phoneAllowance +
+        housingAllowance + positionAllowance + otherAllowance;
+
+      // Individual deductions
+      const absentDays = daysAbsent > 0 ? daysAbsent : 0;
+      const absentDeduction = absentDays * dailyRate;
       const unpaidLeaveDeduction = unpaidLeaveDays * dailyRate;
+      const lateDeductionPerDay = Number(structure.late_deduction_per_day) || 0;
+      const lateDeduction = daysLate * lateDeductionPerDay;
 
-      // Gross salary
-      const grossSalary = basicSalary + attendanceBonus + otAmount + totalAllowances - absentDeduction - unpaidLeaveDeduction;
+      // Gross salary (all earnings)
+      const grossSalary = basicSalary + attendanceBonus + otAmount + totalAllowances +
+        performanceBonus + incentive + commission;
 
       // 5. Calculate deductions
       // SSB (Social Security Board) - 2% employee contribution
       const ssbAmount = grossSalary * (Number(structure.ssb_employee_percent) / 100);
 
       // Myanmar Income Tax (simplified progressive brackets)
-      const taxAmount = this.calculateMyanmarTax(grossSalary * 12) / 12; // Monthly tax
+      const taxAmount = this.calculateMyanmarTax(grossSalary * 12) / 12;
 
       // Advance deduction
       let advanceDeduction = 0;
@@ -333,31 +343,51 @@ export class PayrollService {
         // salary_advances table may not exist
       }
 
-      const totalDeductions = ssbAmount + taxAmount + advanceDeduction;
+      const totalDeductions = ssbAmount + taxAmount + advanceDeduction +
+        absentDeduction + unpaidLeaveDeduction + lateDeduction;
       const netSalary = grossSalary - totalDeductions;
 
-      // 6. Save or update payroll record
+      // 6. Save or update payroll record (with full breakdown)
       const payrollData = {
         employee_id: empId,
         company_id: companyId,
         month,
         year,
-        basic_salary: basicSalary,
-        attendance_bonus: attendanceBonus,
+        // Earnings
+        basic_salary: Math.round(basicSalary),
+        attendance_bonus: Math.round(attendanceBonus),
         ot_hours: totalOTHours,
         ot_amount: Math.round(otAmount),
+        transport_allowance: Math.round(transportAllowance),
+        meal_allowance: Math.round(mealAllowance),
+        phone_allowance: Math.round(phoneAllowance),
+        housing_allowance: Math.round(housingAllowance),
+        position_allowance: Math.round(positionAllowance),
+        other_allowance: Math.round(otherAllowance),
+        total_allowances: Math.round(totalAllowances),
+        performance_bonus: Math.round(performanceBonus),
+        incentive: Math.round(incentive),
+        commission: Math.round(commission),
         bonus: 0,
-        total_allowances: totalAllowances,
+        other_earnings: 0,
         gross_salary: Math.round(grossSalary),
-        tax_amount: Math.round(taxAmount),
+        // Deductions
         ssb_amount: Math.round(ssbAmount),
+        tax_amount: Math.round(taxAmount),
         advance_deduction: Math.round(advanceDeduction),
+        absent_deduction: Math.round(absentDeduction),
+        unpaid_leave_deduction: Math.round(unpaidLeaveDeduction),
+        late_deduction: Math.round(lateDeduction),
+        loan_deduction: 0,
+        insurance_deduction: 0,
+        uniform_deduction: 0,
         other_deductions: 0,
         total_deductions: Math.round(totalDeductions),
         net_salary: Math.round(netSalary),
+        // Attendance
         total_working_days: totalWorkingDays,
         days_present: daysPresent,
-        days_absent: daysAbsent > 0 ? daysAbsent : 0,
+        days_absent: absentDays,
         days_late: daysLate,
         days_on_leave: paidLeaveDays + unpaidLeaveDays,
         status: 'calculated',
@@ -532,16 +562,9 @@ export class PayrollService {
   }
 
   // ============================================
-  // ADD BONUS / ADJUST PAYROLL
+  // FULL PAYROLL ADJUSTMENT (Owner/HR can edit ALL components)
   // ============================================
-  async adjustPayroll(companyId: string, payrollId: string, data: {
-    bonus?: number;
-    bonus_description?: string;
-    other_earnings?: number;
-    other_earnings_description?: string;
-    other_deductions?: number;
-    other_deductions_description?: string;
-  }) {
+  async adjustPayroll(companyId: string, payrollId: string, data: any) {
     const db = this.supabaseService.getClient();
 
     // Get existing payroll
@@ -554,30 +577,84 @@ export class PayrollService {
 
     if (!payroll) throw new NotFoundException('Payroll record not found');
 
-    // Recalculate
-    const bonus = data.bonus || Number(payroll.bonus);
-    const otherEarnings = data.other_earnings || Number(payroll.other_earnings);
-    const otherDeductions = data.other_deductions || Number(payroll.other_deductions);
+    // Helper: use new value if provided (including 0), else keep existing
+    const val = (key: string) => data[key] !== undefined ? Number(data[key]) : Number(payroll[key] || 0);
 
-    const newGross = Number(payroll.basic_salary) + Number(payroll.attendance_bonus) +
-      Number(payroll.ot_amount) + bonus + Number(payroll.total_allowances) + otherEarnings;
+    // Earnings
+    const basicSalary = val('basic_salary');
+    const attendanceBonus = val('attendance_bonus');
+    const otAmount = val('ot_amount');
+    const transportAllowance = val('transport_allowance');
+    const mealAllowance = val('meal_allowance');
+    const phoneAllowance = val('phone_allowance');
+    const housingAllowance = val('housing_allowance');
+    const positionAllowance = val('position_allowance');
+    const otherAllowance = val('other_allowance');
+    const performanceBonus = val('performance_bonus');
+    const incentiveVal = val('incentive');
+    const commissionVal = val('commission');
+    const bonus = val('bonus');
+    const otherEarnings = val('other_earnings');
 
-    const newTotalDeductions = Number(payroll.tax_amount) + Number(payroll.ssb_amount) +
-      Number(payroll.advance_deduction) + otherDeductions;
+    const totalAllowances = transportAllowance + mealAllowance + phoneAllowance +
+      housingAllowance + positionAllowance + otherAllowance;
 
-    const netSalary = newGross - newTotalDeductions;
+    const grossSalary = basicSalary + attendanceBonus + otAmount + totalAllowances +
+      performanceBonus + incentiveVal + commissionVal + bonus + otherEarnings;
+
+    // Deductions
+    const ssbAmount = val('ssb_amount');
+    const taxAmount = val('tax_amount');
+    const advanceDeduction = val('advance_deduction');
+    const absentDeduction = val('absent_deduction');
+    const unpaidLeaveDeduction = val('unpaid_leave_deduction');
+    const lateDeduction = val('late_deduction');
+    const loanDeduction = val('loan_deduction');
+    const insuranceDeduction = val('insurance_deduction');
+    const uniformDeduction = val('uniform_deduction');
+    const otherDeductions = val('other_deductions');
+
+    const totalDeductions = ssbAmount + taxAmount + advanceDeduction +
+      absentDeduction + unpaidLeaveDeduction + lateDeduction +
+      loanDeduction + insuranceDeduction + uniformDeduction + otherDeductions;
+
+    const netSalary = grossSalary - totalDeductions;
 
     const { data: updated, error } = await db
       .from('payroll')
       .update({
-        bonus: bonus,
-        bonus_description: data.bonus_description || payroll.bonus_description,
-        other_earnings: otherEarnings,
-        other_earnings_description: data.other_earnings_description || payroll.other_earnings_description,
-        other_deductions: otherDeductions,
-        other_deductions_description: data.other_deductions_description || payroll.other_deductions_description,
-        gross_salary: Math.round(newGross),
-        total_deductions: Math.round(newTotalDeductions),
+        // Earnings
+        basic_salary: Math.round(basicSalary),
+        attendance_bonus: Math.round(attendanceBonus),
+        ot_amount: Math.round(otAmount),
+        transport_allowance: Math.round(transportAllowance),
+        meal_allowance: Math.round(mealAllowance),
+        phone_allowance: Math.round(phoneAllowance),
+        housing_allowance: Math.round(housingAllowance),
+        position_allowance: Math.round(positionAllowance),
+        other_allowance: Math.round(otherAllowance),
+        total_allowances: Math.round(totalAllowances),
+        performance_bonus: Math.round(performanceBonus),
+        incentive: Math.round(incentiveVal),
+        commission: Math.round(commissionVal),
+        bonus: Math.round(bonus),
+        bonus_description: data.bonus_description ?? payroll.bonus_description,
+        other_earnings: Math.round(otherEarnings),
+        other_earnings_description: data.other_earnings_description ?? payroll.other_earnings_description,
+        gross_salary: Math.round(grossSalary),
+        // Deductions
+        ssb_amount: Math.round(ssbAmount),
+        tax_amount: Math.round(taxAmount),
+        advance_deduction: Math.round(advanceDeduction),
+        absent_deduction: Math.round(absentDeduction),
+        unpaid_leave_deduction: Math.round(unpaidLeaveDeduction),
+        late_deduction: Math.round(lateDeduction),
+        loan_deduction: Math.round(loanDeduction),
+        insurance_deduction: Math.round(insuranceDeduction),
+        uniform_deduction: Math.round(uniformDeduction),
+        other_deductions: Math.round(otherDeductions),
+        other_deductions_description: data.other_deductions_description ?? payroll.other_deductions_description,
+        total_deductions: Math.round(totalDeductions),
         net_salary: Math.round(netSalary),
       })
       .eq('id', payrollId)
