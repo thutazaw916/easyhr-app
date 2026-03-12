@@ -17,9 +17,19 @@ export class NotificationService {
     data?: Record<string, any>;
   }) {
     const db = this.supabaseService.getClient();
+    // Only insert columns that exist in the table
+    const row: Record<string, any> = {
+      company_id: data.company_id,
+      employee_id: data.employee_id,
+      type: data.type,
+      title: data.title,
+      is_read: false,
+    };
+    if (data.body) row.body = data.body;
+    if (data.data) row.data = data.data;
     const { data: notification, error } = await db
       .from('notifications')
-      .insert(data)
+      .insert(row)
       .select()
       .single();
     if (error) {
@@ -56,7 +66,11 @@ export class NotificationService {
       .map((admin: any) => ({
         company_id: companyId,
         employee_id: admin.id,
-        ...notification,
+        type: notification.type,
+        title: notification.title,
+        body: notification.body || null,
+        data: notification.data || {},
+        is_read: false,
       }));
 
     if (notifications.length === 0) return;

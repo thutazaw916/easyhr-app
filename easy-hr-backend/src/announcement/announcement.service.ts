@@ -66,7 +66,6 @@ export class AnnouncementService {
       .from('announcements')
       .select(`*, creator:created_by(id, first_name, last_name, profile_photo_url)`)
       .eq('company_id', companyId)
-      .eq('is_active', true)
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -117,6 +116,9 @@ export class AnnouncementService {
   }
 
   async remove(id: string) {
-    return this.supabaseService.update('announcements', id, { is_active: false });
+    const db = this.supabaseService.getClient();
+    const { error } = await db.from('announcements').delete().eq('id', id);
+    if (error) throw error;
+    return { message: 'Announcement deleted' };
   }
 }
