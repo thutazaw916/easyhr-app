@@ -394,6 +394,37 @@ class ApiService {
   }
 
   // ============================================
+  // ANNOUNCEMENTS
+  // ============================================
+
+  Future<List<dynamic>> getAnnouncements() async {
+    final response = await _dio.get('/announcements');
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> createAnnouncement(Map<String, dynamic> data) async {
+    final response = await _dio.post('/announcements', data: data);
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> getAnnouncement(String id) async {
+    final response = await _dio.get('/announcements/$id');
+    return response.data;
+  }
+
+  Future<void> markAnnouncementRead(String id) async {
+    await _dio.put('/announcements/$id/read');
+  }
+
+  Future<void> pinAnnouncement(String id, bool pin) async {
+    await _dio.put('/announcements/$id/pin', data: {'pin': pin});
+  }
+
+  Future<void> deleteAnnouncement(String id) async {
+    await _dio.delete('/announcements/$id');
+  }
+
+  // ============================================
   // AI CHATBOT
   // ============================================
 

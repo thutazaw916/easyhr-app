@@ -172,39 +172,133 @@ class _AttendanceReportScreenState extends ConsumerState<AttendanceReportScreen>
     );
   }
 
+  // Monthly report state
+  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  List<Map<String, dynamic>> _monthlyRecords = [];
+  Map<String, dynamic> _monthlySummary = {};
+  bool _monthlyLoading = false;
+
+  Future<void> _loadMonthlyReport() async {
+    setState(() => _monthlyLoading = true);
+    try {
+      final api = ref.read(apiServiceProvider);
+      final result = await api.getMyAttendanceHistory(
+        year: _selectedMonth.year,
+        month: _selectedMonth.month,
+      );
+      setState(() {
+        _monthlySummary = Map<String, dynamic>.from(result['summary'] ?? {});
+        // Group daily data
+        final records = List<Map<String, dynamic>>.from(result['records'] ?? []);
+        _monthlyRecords = records;
+        _monthlyLoading = false;
+      });
+    } catch (e) {
+      debugPrint('[MonthlyReport] error: $e');
+      setState(() => _monthlyLoading = false);
+    }
+  }
+
   Widget _buildMonthlyTab(bool isDark) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 80, height: 80,
-              decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle),
-              child: const Icon(Iconsax.chart_21, size: 40, color: AppColors.primary),
-            ),
-            const SizedBox(height: 20),
-            Text('Monthly Report', style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            Text(
-              'Monthly attendance summary with charts, department breakdowns, and exportable PDF reports.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              icon: const Icon(Iconsax.document_download, size: 18),
-              label: const Text('Export PDF'),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('📊 Export feature coming soon!'), behavior: SnackBarBehavior.floating),
-                );
-              },
-            ),
-          ],
+    if (_monthlyRecords.isEmpty && !_monthlyLoading) {
+      // Auto-load on first visit
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_monthlyRecords.isEmpty && !_monthlyLoading) _loadMonthlyReport();
+      });
+    }
+
+    final totalDays = _monthlySummary['total_working_days'] ?? 0;
+    final presentDays = _monthlySummary['present_days'] ?? 0;
+    final lateDays = _monthlySummary['late_days'] ?? 0;
+    final absentDays = _monthlySummary['absent_days'] ?? 0;
+    final leaveDays = _monthlySummary['leave_days'] ?? 0;
+    final totalHours = (_monthlySummary['total_hours'] ?? 0).toDouble();
+    final totalOt = (_monthlySummary['total_overtime_hours'] ?? 0).toDouble();
+
+    return Column(
+      children: [
+        // Month picker
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Iconsax.arrow_left_2, size: 20),
+                onPressed: () {
+                  setState(() => _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1));
+                  _loadMonthlyReport();
+                },
+              ),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Iconsax.calendar, size: 18),
+                      const SizedBox(width: 8),
+                      Text(DateFormat('MMMM yyyy').format(_selectedMonth), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Iconsax.arrow_right_3, size: 20),
+                onPressed: _selectedMonth.isBefore(DateTime(DateTime.now().year, DateTime.now().month))
+                    ? () {
+                        setState(() => _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1));
+                        _loadMonthlyReport();
+                      }
+                    : null,
+              ),
+            ],
+          ),
         ),
-      ),
+
+        // Summary
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(children: [
+            Row(children: [
+              _buildMiniStat(isDark, 'Present', '$presentDays', AppColors.present),
+              const SizedBox(width: 8),
+              _buildMiniStat(isDark, 'Late', '$lateDays', AppColors.late_),
+              const SizedBox(width: 8),
+              _buildMiniStat(isDark, 'Absent', '$absentDays', AppColors.absent),
+              const SizedBox(width: 8),
+              _buildMiniStat(isDark, 'Leave', '$leaveDays', AppColors.onLeave),
+            ]),
+            const SizedBox(height: 8),
+            Row(children: [
+              _buildMiniStat(isDark, 'Work Days', '$totalDays', AppColors.primary),
+              const SizedBox(width: 8),
+              _buildMiniStat(isDark, 'Hours', '${totalHours.toStringAsFixed(1)}', AppColors.accent),
+              const SizedBox(width: 8),
+              _buildMiniStat(isDark, 'OT', '${totalOt.toStringAsFixed(1)}h', AppColors.warning),
+            ]),
+          ]),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Records list
+        Expanded(
+          child: _monthlyLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _monthlyRecords.isEmpty
+                  ? Center(child: Text('No records for this month', style: Theme.of(context).textTheme.bodyMedium))
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _monthlyRecords.length,
+                      itemBuilder: (context, index) => _buildRecordCard(isDark, _monthlyRecords[index]),
+                    ),
+        ),
+      ],
     );
   }
 

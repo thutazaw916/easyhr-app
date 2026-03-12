@@ -21,11 +21,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _late = 0;
   int _onLeave = 0;
   String? _myStatus;
+  List<Map<String, dynamic>> _announcements = [];
 
   @override
   void initState() {
     super.initState();
     _loadStats();
+    _loadAnnouncements();
   }
 
   Future<void> _loadStats() async {
@@ -61,6 +63,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             _onLeave = (_myStatus == 'on_leave') ? 1 : 0;
           });
         }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadAnnouncements() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final data = await api.getAnnouncements();
+      if (mounted) {
+        setState(() {
+          _announcements = List<Map<String, dynamic>>.from(data).take(3).toList();
+        });
       }
     } catch (_) {}
   }
@@ -231,13 +245,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   _buildQuickAction(context, Iconsax.gps, mm ? 'တက်ရောက်မှု' : 'Attendance', AppColors.primary, () => context.go('/attendance')),
                   _buildQuickAction(context, Iconsax.calendar_add, s['leave'] ?? 'Leave', AppColors.onLeave, () => context.go('/leave')),
-                  _buildQuickAction(context, Iconsax.message, s['chat'] ?? 'Chat', AppColors.accent, () => context.push('/chat')),
-                  _buildQuickAction(context, Iconsax.cpu, mm ? 'AI အကူ' : 'AI Help', AppColors.info, () => context.push('/chatbot')),
+                  _buildQuickAction(context, Iconsax.notification_bing, mm ? 'ကြေညာ' : 'Announce', AppColors.error, () => context.push('/announcements')),
+                  _buildQuickAction(context, Iconsax.money_send, s['payroll'] ?? 'Payroll', AppColors.accent, () => context.go('/payroll')),
                   if (user?.isAdmin ?? false) ...[
                     _buildQuickAction(context, Iconsax.people5, mm ? 'ဝန်ထမ်း' : 'Employees', AppColors.warning, () => context.push('/admin/employees')),
                     _buildQuickAction(context, Iconsax.chart_square, s['reports'] ?? 'Reports', AppColors.info, () => context.push('/admin/attendance-report')),
                     _buildQuickAction(context, Iconsax.user_add, s['add_staff'] ?? 'Add Staff', AppColors.primary, () => context.push('/admin/employees/add')),
-                    _buildQuickAction(context, Iconsax.money_send, s['payroll'] ?? 'Payroll', AppColors.accent, () => context.go('/payroll')),
                     _buildQuickAction(context, Iconsax.setting_2, s['settings'] ?? 'Settings', AppColors.lightTextSecondary, () => context.push('/settings/company')),
                   ],
                   _buildQuickAction(context, Iconsax.receipt_2, mm ? 'အစီအစဉ်' : 'Plans', Colors.teal, () => context.push('/billing')),
@@ -255,25 +268,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              Container(
-                width: double.infinity, padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.error.withOpacity(0.2)),
+              if (_announcements.isEmpty)
+                Container(
+                  width: double.infinity, padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, width: 0.5),
+                  ),
+                  child: Center(child: Text(mm ? 'ကြေညာချက် မရှိသေးပါ' : 'No announcements yet',
+                    style: Theme.of(context).textTheme.bodySmall)),
                 ),
-                child: Row(children: [
-                  Container(width: 40, height: 40,
-                    decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Iconsax.flag, color: AppColors.error, size: 20)),
-                  const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(mm ? 'ရုံးပိတ်ရက် - သင်္ကြန်' : 'Office Closure - Thingyan', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 14)),
-                    Text(mm ? 'ဧပြီ ၁၃-၁၇ ရုံးပိတ်ပါမည်' : 'April 13-17 closed for holiday', style: Theme.of(context).textTheme.bodySmall),
-                  ])),
-                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle)),
-                ]),
-              ),
+              ..._announcements.map((a) {
+                final isHigh = a['priority'] == 'high';
+                final isRead = a['is_read'] == true;
+                final title = a['title']?.toString() ?? '';
+                final content = a['content']?.toString() ?? '';
+                final borderColor = isHigh ? AppColors.error.withOpacity(0.4) : (isDark ? AppColors.darkBorder : AppColors.lightBorder);
+                return GestureDetector(
+                  onTap: () => context.push('/announcements'),
+                  child: Container(
+                    width: double.infinity, padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: isHigh ? AppColors.error.withOpacity(0.05) : (isDark ? AppColors.darkCard : AppColors.lightCard),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: borderColor, width: isHigh ? 1.5 : 0.5),
+                    ),
+                    child: Row(children: [
+                      Container(width: 40, height: 40,
+                        decoration: BoxDecoration(color: (isHigh ? AppColors.error : AppColors.primary).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                        child: Icon(isHigh ? Iconsax.flag : Iconsax.message_text, color: isHigh ? AppColors.error : AppColors.primary, size: 20)),
+                      const SizedBox(width: 12),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 14, fontWeight: isRead ? FontWeight.w500 : FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        Text(content, style: Theme.of(context).textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ])),
+                      if (!isRead) Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle)),
+                    ]),
+                  ),
+                );
+              }),
 
               const SizedBox(height: 100),
             ],
