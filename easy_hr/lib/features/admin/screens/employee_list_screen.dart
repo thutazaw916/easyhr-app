@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
@@ -339,7 +340,50 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
               _detailRow(isDark, Iconsax.briefcase, 'Position', employee['position_name'] ?? 'N/A'),
               _detailRow(isDark, Iconsax.calendar, 'Joined', employee['join_date'] ?? 'N/A'),
               _detailRow(isDark, Iconsax.money_send, 'Salary', employee['base_salary'] != null ? '${employee['base_salary']} MMK' : 'Not set'),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              // Security Section
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: (isDark ? AppColors.info : AppColors.primary).withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: (isDark ? AppColors.info : AppColors.primary).withValues(alpha: 0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Icon(Iconsax.shield_tick, size: 18, color: isDark ? AppColors.info : AppColors.primary),
+                      const SizedBox(width: 8),
+                      Text('Login Security', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: isDark ? AppColors.info : AppColors.primary)),
+                    ]),
+                    const SizedBox(height: 10),
+                    _detailRow(isDark, Iconsax.lock_1, 'Login PIN', employee['login_pin'] ?? 'Not set'),
+                    _detailRow(isDark, Iconsax.mobile, 'Device', employee['device_name'] ?? (employee['device_id'] != null ? 'Bound' : 'Not bound')),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Iconsax.lock_1, size: 16),
+                          label: const Text('Set PIN', style: TextStyle(fontSize: 12)),
+                          onPressed: () => _showSetPinDialog(context, employee),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: Icon(Iconsax.refresh, size: 16, color: employee['device_id'] != null ? AppColors.warning : Colors.grey),
+                          label: Text('Reset Device', style: TextStyle(fontSize: 12, color: employee['device_id'] != null ? AppColors.warning : Colors.grey)),
+                          onPressed: employee['device_id'] != null ? () => _resetDevice(context, employee) : null,
+                        ),
+                      ),
+                    ]),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
               Row(
                 children: [
                   Expanded(
@@ -379,6 +423,110 @@ class _EmployeeListScreenState extends ConsumerState<EmployeeListScreen> {
           const SizedBox(width: 12),
           SizedBox(width: 100, child: Text(label, style: TextStyle(fontSize: 13, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary))),
           Expanded(child: Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500))),
+        ],
+      ),
+    );
+  }
+
+  void _showSetPinDialog(BuildContext ctx, Map<String, dynamic> employee) {
+    final pinC = TextEditingController(text: employee['login_pin'] ?? '');
+    final name = '${employee['first_name'] ?? ''} ${employee['last_name'] ?? ''}'.trim();
+
+    showDialog(
+      context: ctx,
+      builder: (dCtx) => AlertDialog(
+        title: const Text('Set Login PIN'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Set 6-digit PIN for $name'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: pinC,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              decoration: const InputDecoration(
+                hintText: '6-digit PIN',
+                prefixIcon: Icon(Iconsax.lock_1, size: 20),
+                counterText: '',
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () {
+                final random = (100000 + (DateTime.now().millisecondsSinceEpoch % 900000)).toString();
+                pinC.text = random;
+              },
+              child: const Text('Generate Random PIN'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dCtx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (pinC.text.length != 6) return;
+              try {
+                final api = ref.read(apiServiceProvider);
+                await api.setEmployeePin(employee['id'], pinC.text);
+                if (dCtx.mounted) Navigator.pop(dCtx);
+                if (ctx.mounted) Navigator.pop(ctx);
+                _loadEmployees();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('PIN set: ${pinC.text}'), backgroundColor: AppColors.present, behavior: SnackBarBehavior.floating),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _resetDevice(BuildContext ctx, Map<String, dynamic> employee) {
+    final name = '${employee['first_name'] ?? ''} ${employee['last_name'] ?? ''}'.trim();
+    final deviceName = employee['device_name'] ?? 'Unknown device';
+
+    showDialog(
+      context: ctx,
+      builder: (dCtx) => AlertDialog(
+        title: const Text('Reset Device Binding'),
+        content: Text('Remove device binding for $name?\n\nCurrent device: $deviceName\n\nEmployee will need to login again from their new phone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dCtx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
+            onPressed: () async {
+              try {
+                final api = ref.read(apiServiceProvider);
+                await api.resetDeviceBinding(employee['id']);
+                if (dCtx.mounted) Navigator.pop(dCtx);
+                if (ctx.mounted) Navigator.pop(ctx);
+                _loadEmployees();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Device binding reset'), backgroundColor: AppColors.present, behavior: SnackBarBehavior.floating),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
+                  );
+                }
+              }
+            },
+            child: const Text('Reset'),
+          ),
         ],
       ),
     );

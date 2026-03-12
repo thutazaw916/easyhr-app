@@ -69,6 +69,7 @@ dependencies:
   # Icons
   cupertino_icons: ^1.0.8
   iconsax: ^0.0.8
+  device_info_plus: ^11.3.0
 
 dev_dependencies:
   flutter_test:

@@ -16,6 +16,7 @@ import {
   AppleLoginDto,
   OnboardCompanyDto,
   AcceptInviteDto,
+  PinLoginDto,
 } from './dto/auth.dto';
 import * as admin from 'firebase-admin';
 
@@ -468,6 +469,55 @@ export class AuthService {
         dark_mode: employee.dark_mode,
       },
     };
+  }
+
+  // ============================================
+  // 6b. Employee PIN Login + Device Binding
+  // ============================================
+  async pinLogin(dto: PinLoginDto) {
+    const db = this.supabaseService.getClient();
+
+    // 1. Find employee by phone
+    const { data: employee } = await db
+      .from('employees')
+      .select('*')
+      .eq('phone', dto.phone)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (!employee) {
+      throw new BadRequestException('Phone number not registered. Please contact your HR.');
+    }
+
+    // 2. Check PIN
+    if (!employee.login_pin) {
+      throw new BadRequestException('PIN not set. Please contact your admin to set your login PIN.');
+    }
+    if (employee.login_pin !== dto.pin) {
+      throw new UnauthorizedException('Invalid PIN');
+    }
+
+    // 3. Device binding check
+    if (employee.device_id) {
+      // Device already bound - must match
+      if (employee.device_id !== dto.device_id) {
+        throw new UnauthorizedException(
+          'This account is bound to another device. Please contact your admin to reset your device.'
+        );
+      }
+    } else {
+      // First login - bind this device
+      await db
+        .from('employees')
+        .update({
+          device_id: dto.device_id,
+          device_name: dto.device_name || null,
+        })
+        .eq('id', employee.id);
+    }
+
+    // 4. Login success
+    return this._loginEmployee(employee);
   }
 
   // ============================================
@@ -951,6 +1001,60 @@ export class AuthService {
       max_employees: company.max_employees || 9,
       is_expired: subEnd ? subEnd < now : false,
     };
+  }
+
+  // ============================================
+  // Helper: Reset device binding (admin)
+  // ============================================
+  async resetDeviceBinding(companyId: string, employeeId: string) {
+    const db = this.supabaseService.getClient();
+
+    const { data: employee } = await db
+      .from('employees')
+      .select('id, first_name, last_name, device_name')
+      .eq('id', employeeId)
+      .eq('company_id', companyId)
+      .maybeSingle();
+
+    if (!employee) {
+      throw new BadRequestException('Employee not found');
+    }
+
+    await db
+      .from('employees')
+      .update({ device_id: null, device_name: null })
+      .eq('id', employeeId);
+
+    return { message: 'Device binding reset successfully' };
+  }
+
+  // ============================================
+  // Helper: Set employee PIN (admin)
+  // ============================================
+  async setEmployeePin(companyId: string, employeeId: string, pin: string) {
+    const db = this.supabaseService.getClient();
+
+    if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+      throw new BadRequestException('PIN must be exactly 6 digits');
+    }
+
+    const { data: employee } = await db
+      .from('employees')
+      .select('id')
+      .eq('id', employeeId)
+      .eq('company_id', companyId)
+      .maybeSingle();
+
+    if (!employee) {
+      throw new BadRequestException('Employee not found');
+    }
+
+    await db
+      .from('employees')
+      .update({ login_pin: pin })
+      .eq('id', employeeId);
+
+    return { message: 'PIN updated successfully', pin };
   }
 
   // ============================================

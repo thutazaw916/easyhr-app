@@ -98,6 +98,25 @@ class ApiService {
     return response.data;
   }
 
+  Future<Map<String, dynamic>> pinLogin(String phone, String pin, String deviceId, String? deviceName) async {
+    final response = await _dio.post('/auth/employee/pin-login', data: {
+      'phone': phone,
+      'pin': pin,
+      'device_id': deviceId,
+      'device_name': deviceName,
+    });
+    return response.data;
+  }
+
+  Future<void> resetDeviceBinding(String employeeId) async {
+    await _dio.put('/auth/employee/$employeeId/reset-device');
+  }
+
+  Future<Map<String, dynamic>> setEmployeePin(String employeeId, String pin) async {
+    final response = await _dio.put('/auth/employee/$employeeId/set-pin', data: {'pin': pin});
+    return response.data;
+  }
+
   Future<Map<String, dynamic>> firebasePhoneLogin(String firebaseIdToken, String phone) async {
     final response = await _dio.post('/auth/employee/firebase-login', data: {
       'firebase_id_token': firebaseIdToken,

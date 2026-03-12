@@ -1,5 +1,7 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Post, Put, Body, Param, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard, Roles } from './guards/roles.guard';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import {
   CompanySignUpDto,
@@ -13,6 +15,7 @@ import {
   AppleLoginDto,
   OnboardCompanyDto,
   AcceptInviteDto,
+  PinLoginDto,
 } from './dto/auth.dto';
 
 @ApiTags('Authentication')
@@ -95,5 +98,30 @@ export class AuthController {
   @ApiOperation({ summary: 'Accept employee invitation and join company' })
   async acceptInvite(@Body() dto: AcceptInviteDto) {
     return this.authService.acceptInvite(dto);
+  }
+
+  @Post('employee/pin-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Employee login with PIN + device binding' })
+  async pinLogin(@Body() dto: PinLoginDto) {
+    return this.authService.pinLogin(dto);
+  }
+
+  @Put('employee/:id/reset-device')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('owner', 'hr_manager')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reset device binding for an employee (admin)' })
+  async resetDevice(@Request() req, @Param('id') id: string) {
+    return this.authService.resetDeviceBinding(req.user.company_id, id);
+  }
+
+  @Put('employee/:id/set-pin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('owner', 'hr_manager')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Set login PIN for an employee (admin)' })
+  async setPin(@Request() req, @Param('id') id: string, @Body() body: { pin: string }) {
+    return this.authService.setEmployeePin(req.user.company_id, id, body.pin);
   }
 }

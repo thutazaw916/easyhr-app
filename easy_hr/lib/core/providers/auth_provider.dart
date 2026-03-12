@@ -217,6 +217,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  // PIN + Device Binding Login
+  Future<bool> pinLogin(String phone, String pin, String deviceId, String? deviceName) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final response = await _api.pinLogin(phone, pin, deviceId, deviceName);
+      await _api.saveToken(response['access_token']);
+      final user = UserModel.fromJson(response['user']);
+      final sub = response['subscription'] != null
+          ? SubscriptionModel.fromJson(response['subscription'])
+          : SubscriptionModel();
+      await _saveUser(user);
+      await _saveSubscription(sub);
+      state = state.copyWith(user: user, subscription: sub, isAuthenticated: true, isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _getErrorMessage(e));
+      return false;
+    }
+  }
+
   // Firebase Phone Auth Login
   Future<bool> firebasePhoneLogin(String firebaseIdToken, String phone) async {
     state = state.copyWith(isLoading: true, error: null);

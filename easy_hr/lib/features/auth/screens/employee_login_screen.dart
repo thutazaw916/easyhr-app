@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../../core/services/firebase_phone_auth_service.dart';
 import '../../../core/theme/app_theme.dart';
 
 class EmployeeLoginScreen extends ConsumerStatefulWidget {
@@ -16,148 +16,76 @@ class EmployeeLoginScreen extends ConsumerStatefulWidget {
 
 class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
   final _phoneController = TextEditingController();
-  final _otpController = TextEditingController();
-  final _firebaseAuth = FirebasePhoneAuthService();
-  bool _otpSent = false;
-  bool _isSendingOtp = false;
-  bool _isVerifying = false;
-  String? _statusMessage;
-  bool _useFirebase = false; // false = backend OTP (Firebase Blaze not available)
-  String? _devOtp;
+  final _pinController = TextEditingController();
+  bool _isLogging = false;
+  bool _obscurePin = true;
 
-  Future<void> _sendOtp() async {
+  Future<String> _getDeviceId() async {
+    final deviceInfo = DeviceInfoPlugin();
+    if (Platform.isAndroid) {
+      final info = await deviceInfo.androidInfo;
+      return info.id;
+    } else if (Platform.isIOS) {
+      final info = await deviceInfo.iosInfo;
+      return info.identifierForVendor ?? 'ios-unknown';
+    }
+    return 'unknown-device';
+  }
+
+  Future<String> _getDeviceName() async {
+    final deviceInfo = DeviceInfoPlugin();
+    if (Platform.isAndroid) {
+      final info = await deviceInfo.androidInfo;
+      return '${info.brand} ${info.model}';
+    } else if (Platform.isIOS) {
+      final info = await deviceInfo.iosInfo;
+      return info.utsname.machine;
+    }
+    return 'Unknown Device';
+  }
+
+  Future<void> _login() async {
     final phone = _phoneController.text.trim();
-    if (phone.isEmpty) return;
-
-    setState(() {
-      _isSendingOtp = true;
-      _statusMessage = null;
-    });
-
-    if (_useFirebase) {
-      // Firebase Phone Auth - sends real SMS
-      await _firebaseAuth.sendOtp(
-        phoneNumber: phone,
-        onCodeSent: (verificationId) {
-          if (mounted) {
-            setState(() {
-              _otpSent = true;
-              _isSendingOtp = false;
-              _statusMessage = 'OTP sent to your phone!';
-            });
-          }
-        },
-        onError: (error) {
-          if (mounted) {
-            if (error == 'BILLING_NOT_ENABLED') {
-              // Auto-fallback to backend dev OTP
-              setState(() => _useFirebase = false);
-              _sendOtp(); // Retry with backend OTP
-              return;
-            }
-            setState(() {
-              _isSendingOtp = false;
-              _statusMessage = null;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(error), backgroundColor: AppColors.error),
-            );
-          }
-        },
-        onAutoVerified: (credential) async {
-          // Auto-verified (Android) - sign in directly
-          if (mounted) {
-            setState(() => _statusMessage = 'Auto-verifying...');
-          }
-          await _signInWithFirebaseCredential(credential);
-        },
+    final pin = _pinController.text.trim();
+    if (phone.isEmpty || pin.isEmpty || pin.length != 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter phone and 6-digit PIN'), behavior: SnackBarBehavior.floating),
       );
-    } else {
-      // Fallback: backend dev OTP
-      try {
-        final response = await ref.read(authProvider.notifier).requestOtp(phone);
-        setState(() {
-          _otpSent = true;
-          _isSendingOtp = false;
-          _devOtp = response['dev_otp'];
-        });
-      } catch (e) {
-        setState(() => _isSendingOtp = false);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${ref.read(authProvider).error}'), backgroundColor: AppColors.error),
-          );
-        }
-      }
-    }
-  }
-
-  Future<void> _verifyOtp() async {
-    final otp = _otpController.text.trim();
-    if (otp.isEmpty) return;
-
-    setState(() => _isVerifying = true);
-
-    if (_useFirebase) {
-      try {
-        final idToken = await _firebaseAuth.verifyOtp(otp);
-        if (idToken != null && mounted) {
-          final success = await ref.read(authProvider.notifier).firebasePhoneLogin(
-            idToken,
-            _phoneController.text.trim(),
-          );
-          if (success && mounted) context.go('/');
-        }
-      } on FirebaseAuthException catch (e) {
-        if (mounted) {
-          String msg = 'OTP မှားနေပါတယ်';
-          if (e.code == 'invalid-verification-code') msg = 'OTP code မှားနေပါတယ်';
-          if (e.code == 'session-expired') msg = 'OTP သက်တမ်းကုန်ပါပြီ။ OTP အသစ်တောင်းပါ';
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg), backgroundColor: AppColors.error),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
-          );
-        }
-      }
-    } else {
-      // Fallback: backend verify
-      final success = await ref.read(authProvider.notifier).verifyOtp(
-        _phoneController.text.trim(), otp,
-      );
-      if (success && mounted) context.go('/');
+      return;
     }
 
-    if (mounted) setState(() => _isVerifying = false);
-  }
+    setState(() => _isLogging = true);
 
-  Future<void> _signInWithFirebaseCredential(PhoneAuthCredential credential) async {
     try {
-      final idToken = await _firebaseAuth.signInWithCredential(credential);
-      if (idToken != null && mounted) {
-        final success = await ref.read(authProvider.notifier).firebasePhoneLogin(
-          idToken,
-          _phoneController.text.trim(),
+      final deviceId = await _getDeviceId();
+      final deviceName = await _getDeviceName();
+
+      final success = await ref.read(authProvider.notifier).pinLogin(
+        phone, pin, deviceId, deviceName,
+      );
+
+      if (success && mounted) {
+        context.go('/');
+      } else if (mounted) {
+        final error = ref.read(authProvider).error ?? 'Login failed';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
         );
-        if (success && mounted) context.go('/');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
         );
       }
     }
+
+    if (mounted) setState(() => _isLogging = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
-    final isLoading = _isSendingOtp || _isVerifying || authState.isLoading;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -172,107 +100,79 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
               const SizedBox(height: 20),
               Text('Employee Login', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 8),
-              Text('Enter your registered phone number',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.lightTextSecondary)),
+              Text('Enter your phone number and PIN from your admin',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
               const SizedBox(height: 40),
 
               // Phone Number
               TextField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                enabled: !_otpSent,
                 decoration: const InputDecoration(
                   hintText: '09xxxxxxxxx',
                   prefixIcon: Icon(Iconsax.call, size: 20),
+                  labelText: 'Phone Number',
                 ),
               ),
+              const SizedBox(height: 16),
 
-              if (!_otpSent) ...[
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity, height: 52,
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : _sendOtp,
-                    child: isLoading
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Send OTP'),
+              // PIN
+              TextField(
+                controller: _pinController,
+                keyboardType: TextInputType.number,
+                obscureText: _obscurePin,
+                maxLength: 6,
+                decoration: InputDecoration(
+                  hintText: '6-digit PIN',
+                  prefixIcon: const Icon(Iconsax.lock_1, size: 20),
+                  labelText: 'Login PIN',
+                  counterText: '',
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscurePin ? Iconsax.eye_slash : Iconsax.eye, size: 20),
+                    onPressed: () => setState(() => _obscurePin = !_obscurePin),
                   ),
                 ),
-              ],
+              ),
+              const SizedBox(height: 32),
 
-              if (_otpSent) ...[
-                const SizedBox(height: 24),
-
-                // Status message
-                if (_statusMessage != null)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.present.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Iconsax.tick_circle, color: AppColors.present, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(_statusMessage!, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13))),
-                      ],
-                    ),
-                  ),
-
-                // Dev OTP Display (only for fallback mode)
-                if (!_useFirebase && _devOtp != null) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.warning.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Iconsax.warning_2, color: AppColors.warning, size: 20),
-                        const SizedBox(width: 8),
-                        Text('Dev OTP: $_devOtp', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 16),
-
-                TextField(
-                  controller: _otpController,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter 6-digit OTP',
-                    prefixIcon: Icon(Iconsax.shield_tick, size: 20),
-                    counterText: '',
-                  ),
+              // Login Button
+              SizedBox(
+                width: double.infinity, height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: _isLogging ? null : _login,
+                  icon: _isLogging
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Iconsax.login),
+                  label: Text(_isLogging ? 'Logging in...' : 'Login'),
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity, height: 52,
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : _verifyOtp,
-                    child: isLoading
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Verify & Login'),
-                  ),
+              ),
+              const SizedBox(height: 24),
+
+              // Security info
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: (isDark ? AppColors.info : AppColors.primary).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: (isDark ? AppColors.info : AppColors.primary).withValues(alpha: 0.2)),
                 ),
-                const SizedBox(height: 16),
-                Center(
-                  child: TextButton(
-                    onPressed: () => setState(() {
-                      _otpSent = false;
-                      _otpController.clear();
-                      _statusMessage = null;
-                      _devOtp = null;
-                    }),
-                    child: const Text('Change phone number'),
-                  ),
+                child: Row(
+                  children: [
+                    Icon(Iconsax.shield_tick, color: isDark ? AppColors.info : AppColors.primary, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Your account is bound to this device for security. Contact admin if you change phones.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ],
           ),
         ),

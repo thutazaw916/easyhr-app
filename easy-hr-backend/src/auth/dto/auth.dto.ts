@@ -104,18 +104,17 @@ export class AdminLoginDto {
 }
 
 // ============================================
-// Employee Login - Request OTP
+// Employee Login - Request OTP (legacy)
 // ============================================
 export class RequestOtpDto {
   @ApiProperty({ example: '09123456789' })
   @IsString()
   @IsNotEmpty()
-  // @Matches(/^(09|\+959)\d{7,9}$/, { message: 'Invalid Myanmar phone number' })
   phone: string;
 }
 
 // ============================================
-// Employee Login - Verify OTP
+// Employee Login - Verify OTP (legacy)
 // ============================================
 export class VerifyOtpDto {
   @ApiProperty({ example: '09123456789' })
@@ -129,6 +128,33 @@ export class VerifyOtpDto {
   @MinLength(6)
   @MaxLength(6)
   otp: string;
+}
+
+// ============================================
+// Employee Login - PIN + Device Binding
+// ============================================
+export class PinLoginDto {
+  @ApiProperty({ example: '09123456789' })
+  @IsString()
+  @IsNotEmpty()
+  phone: string;
+
+  @ApiProperty({ example: '123456' })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  @MaxLength(6)
+  pin: string;
+
+  @ApiProperty({ example: 'a1b2c3d4-device-id', description: 'Unique device identifier' })
+  @IsString()
+  @IsNotEmpty()
+  device_id: string;
+
+  @ApiProperty({ example: 'Samsung Galaxy S24', required: false })
+  @IsString()
+  @IsOptional()
+  device_name?: string;
 }
 
 // ============================================
