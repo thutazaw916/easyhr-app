@@ -414,7 +414,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           isDark, mm,
           enabled: canIn,
           icon: _isCheckedIn ? Iconsax.tick_circle : Iconsax.login,
-          label: mm ? 'အလုပ်ဝင်ရန်' : 'Check In',
+          label: _isCheckedIn ? (mm ? 'ဝင်ပြီး ✓' : 'Checked In ✓') : (mm ? 'အလုပ်ဝင်ရန်' : 'Check In'),
           subLabel: _isCheckedIn
               ? _checkInTime
               : _gpsLoading
@@ -430,9 +430,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         Expanded(child: _checkBtn(
           isDark, mm,
           enabled: canOut,
-          icon: Iconsax.logout,
-          label: mm ? 'အလုပ်ထွက်ရန်' : 'Check Out',
-          subLabel: _checkOutTime ?? (!_isCheckedIn ? (mm ? 'အရင် Check In လုပ်ပါ' : 'Check in first') : null),
+          icon: _isCheckedOut ? Iconsax.tick_circle : Iconsax.logout,
+          label: _isCheckedOut ? (mm ? 'ထွက်ပြီး ✓' : 'Checked Out ✓') : (mm ? 'အလုပ်ထွက်ရန်' : 'Check Out'),
+          subLabel: _isCheckedOut
+              ? _checkOutTime
+              : !_isCheckedIn ? (mm ? 'အရင် Check In လုပ်ပါ' : 'Check in first') : null,
           gradient: const [Color(0xFFF59E0B), Color(0xFFD97706)],
           loading: _isLoading && _isCheckedIn,
           onTap: _handleCheckOut,
@@ -477,10 +479,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   // ==================== TIME CARDS ====================
   Widget _buildTimeCards(bool isDark, bool mm) {
     String hoursDisplay = '--';
-    if (_isCheckedIn && _totalHours > 0) {
+    if (_isCheckedIn) {
       final h = _totalHours.floor();
       final m = ((_totalHours - h) * 60).round();
-      hoursDisplay = '${h}h${m > 0 ? ' ${m}m' : ''}';
+      hoursDisplay = '${h}h ${m}m';
     }
     return Row(
       children: [

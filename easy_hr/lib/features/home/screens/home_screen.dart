@@ -8,11 +8,65 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/localization/app_strings.dart';
 import '../../../core/services/api_service.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  int _present = 0;
+  int _absent = 0;
+  int _late = 0;
+  int _onLeave = 0;
+  String? _myStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      // Load my today status
+      final status = await api.getMyAttendanceStatus();
+      if (mounted) {
+        setState(() {
+          _myStatus = status['status']?.toString();
+        });
+      }
+      // Load daily report for admins
+      final user = ref.read(authProvider).user;
+      if (user?.isAdmin ?? false) {
+        final report = await api.getDailyReport();
+        if (mounted && report['summary'] != null) {
+          final s = report['summary'];
+          setState(() {
+            _present = s['present'] ?? 0;
+            _absent = s['absent'] ?? 0;
+            _late = s['late'] ?? 0;
+            _onLeave = s['on_leave'] ?? 0;
+          });
+        }
+      } else {
+        // For regular employees, show their own status
+        if (mounted) {
+          setState(() {
+            _present = (_myStatus == 'present') ? 1 : 0;
+            _absent = (_myStatus == 'absent' || _myStatus == 'not_checked_in') ? 1 : 0;
+            _late = (_myStatus == 'late') ? 1 : 0;
+            _onLeave = (_myStatus == 'on_leave') ? 1 : 0;
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final user = auth.user;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -152,15 +206,15 @@ class HomeScreen extends ConsumerWidget {
               Text(s['todays_status'] ?? "Today's Status", style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               Row(children: [
-                _buildStatCard(context, isDark, s['present'] ?? 'Present', '0', AppColors.present, Iconsax.tick_circle),
+                _buildStatCard(context, isDark, s['present'] ?? 'Present', '$_present', AppColors.present, Iconsax.tick_circle),
                 const SizedBox(width: 12),
-                _buildStatCard(context, isDark, s['absent'] ?? 'Absent', '0', AppColors.absent, Iconsax.close_circle),
+                _buildStatCard(context, isDark, s['absent'] ?? 'Absent', '$_absent', AppColors.absent, Iconsax.close_circle),
               ]),
               const SizedBox(height: 12),
               Row(children: [
-                _buildStatCard(context, isDark, s['late'] ?? 'Late', '0', AppColors.late_, Iconsax.clock),
+                _buildStatCard(context, isDark, s['late'] ?? 'Late', '$_late', AppColors.late_, Iconsax.clock),
                 const SizedBox(width: 12),
-                _buildStatCard(context, isDark, s['on_leave'] ?? 'On Leave', '0', AppColors.onLeave, Iconsax.calendar_1),
+                _buildStatCard(context, isDark, s['on_leave'] ?? 'On Leave', '$_onLeave', AppColors.onLeave, Iconsax.calendar_1),
               ]),
 
               const SizedBox(height: 24),
