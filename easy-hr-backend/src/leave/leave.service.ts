@@ -260,7 +260,7 @@ export class LeaveService {
       const isApproved = data.status === 'approved';
       await this.notificationService.create({
         company_id: companyId,
-        recipient_id: request.employee_id,
+        employee_id: request.employee_id,
         sender_id: approverId,
         type: isApproved ? 'leave_approved' : 'leave_rejected',
         title: isApproved ? `Leave Approved by ${approverName}` : `Leave Rejected by ${approverName}`,

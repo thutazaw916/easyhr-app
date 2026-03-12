@@ -41,7 +41,7 @@ export class AnnouncementService {
 
       if (employees && employees.length > 0) {
         const notifications = employees.map((emp: any) => ({
-          recipient_id: emp.id,
+          employee_id: emp.id,
           company_id: companyId,
           type: 'announcement',
           title: data.priority === 'high' ? `⚠️ ${data.title}` : `📢 ${data.title}`,

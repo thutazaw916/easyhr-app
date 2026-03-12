@@ -7,7 +7,7 @@ export class NotificationService {
 
   async create(data: {
     company_id: string;
-    recipient_id: string;
+    employee_id: string;
     sender_id?: string;
     type: string;
     title: string;
@@ -55,7 +55,7 @@ export class NotificationService {
       .filter((a: any) => a.id !== notification.sender_id)
       .map((admin: any) => ({
         company_id: companyId,
-        recipient_id: admin.id,
+        employee_id: admin.id,
         ...notification,
       }));
 
@@ -70,7 +70,7 @@ export class NotificationService {
     const { data, error } = await db
       .from('notifications')
       .select('*')
-      .eq('recipient_id', employeeId)
+      .eq('employee_id', employeeId)
       .order('created_at', { ascending: false })
       .limit(limit);
     if (error) throw error;
@@ -82,7 +82,7 @@ export class NotificationService {
     const { count, error } = await db
       .from('notifications')
       .select('*', { count: 'exact', head: true })
-      .eq('recipient_id', employeeId)
+      .eq('employee_id', employeeId)
       .eq('is_read', false);
     if (error) throw error;
     return { unread_count: count || 0 };
@@ -90,7 +90,7 @@ export class NotificationService {
 
   async markAsRead(employeeId: string, notificationId?: string) {
     const db = this.supabaseService.getClient();
-    let query = db.from('notifications').update({ is_read: true }).eq('recipient_id', employeeId);
+    let query = db.from('notifications').update({ is_read: true }).eq('employee_id', employeeId);
     if (notificationId) {
       query = query.eq('id', notificationId);
     }
