@@ -55,7 +55,7 @@ class AboutScreen extends ConsumerWidget {
 
             // Features
             _buildSection(context, isDark, mm ? 'အင်္ဂါရပ်များ' : 'Features', Iconsax.star, [
-              _featureItem(mm ? 'ဝန်ထမ်းတက်ရောက်မှု (GPS + QR)' : 'Attendance Tracking (GPS + QR)', Iconsax.location_tick, AppColors.present),
+              _featureItem(mm ? 'ဝန်ထမ်းတက်ရောက်မှု (GPS)' : 'Attendance Tracking (GPS)', Iconsax.location_tick, AppColors.present),
               _featureItem(mm ? 'လစာတွက်ချက်မှု' : 'Payroll Management', Iconsax.money_send, AppColors.accent),
               _featureItem(mm ? 'ခွင့်စီမံခန့်ခွဲမှု' : 'Leave Management', Iconsax.calendar_tick, AppColors.onLeave),
               _featureItem(mm ? 'ဝန်ထမ်းစီမံခန့်ခွဲမှု' : 'Employee Management', Iconsax.people, AppColors.info),

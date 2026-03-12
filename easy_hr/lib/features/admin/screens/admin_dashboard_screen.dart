@@ -23,6 +23,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   double _totalOtHours = 0;
   bool _loading = true;
   List<Map<String, dynamic>> _notCheckedIn = [];
+  List<Map<String, dynamic>> _checkedInRecords = [];
 
   @override
   void initState() {
@@ -44,6 +45,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           _late = summary['late'] ?? 0;
           _onLeave = summary['on_leave'] ?? 0;
           _notCheckedIn = List<Map<String, dynamic>>.from(report['not_checked_in'] ?? []);
+          _checkedInRecords = List<Map<String, dynamic>>.from(report['records'] ?? []);
           _loading = false;
         });
       }
@@ -84,8 +86,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           IconButton(icon: const Icon(Iconsax.export_1), onPressed: () {}),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: RefreshIndicator(
+        onRefresh: _loadDashboardData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -140,6 +145,85 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
             const SizedBox(height: 20),
 
+            // Checked In Today (real employee records)
+            if (_checkedInRecords.isNotEmpty) ...[
+              Text('Checked In Today (${_checkedInRecords.length})', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              ..._checkedInRecords.map((record) {
+                final emp = record['employee'];
+                String name = 'Employee';
+                if (emp is Map<String, dynamic>) {
+                  final fn = emp['first_name'] ?? '';
+                  final ln = emp['last_name'] ?? '';
+                  name = '$fn $ln'.trim();
+                  if (name.isEmpty) name = emp['name_mm'] ?? emp['employee_code'] ?? 'Employee';
+                }
+                final status = record['status'] ?? 'present';
+                final isLate = status == 'late';
+                final lateMin = record['late_minutes'] ?? 0;
+                final hasCheckout = record['check_out_time'] != null;
+                final totalH = (record['total_hours'] ?? 0).toDouble();
+
+                // Format times
+                String ciStr = '--:--';
+                if (record['check_in_time'] != null) {
+                  final ci = DateTime.tryParse(record['check_in_time'].toString());
+                  if (ci != null) ciStr = DateFormat('h:mm a').format(ci.toLocal());
+                }
+                String coStr = 'Working...';
+                if (hasCheckout) {
+                  final co = DateTime.tryParse(record['check_out_time'].toString());
+                  if (co != null) coStr = DateFormat('h:mm a').format(co.toLocal());
+                }
+                String hoursStr = '';
+                if (hasCheckout && totalH > 0) {
+                  hoursStr = '${totalH.floor()}h ${((totalH - totalH.floor()) * 60).round()}m';
+                }
+
+                final Color sc = isLate ? AppColors.late_ : AppColors.present;
+                final IconData si = isLate ? Iconsax.clock : Iconsax.tick_circle;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: sc.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(color: sc.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                        child: Icon(si, color: sc, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                          Text(
+                            'In: $ciStr • ${hasCheckout ? 'Out: $coStr' : coStr}${hoursStr.isNotEmpty ? ' • $hoursStr' : ''}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
+                          ),
+                        ],
+                      )),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: sc.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                        child: Text(
+                          isLate ? 'LATE ${lateMin}m' : 'PRESENT',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: sc),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 20),
+            ],
+
             // Not Checked In Today
             if (_notCheckedIn.isNotEmpty) ...[
               Text('Not Checked In Yet (${_notCheckedIn.length})', style: Theme.of(context).textTheme.titleMedium),
@@ -190,11 +274,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             _buildActionTile(context, isDark, Iconsax.user_add, 'Add Employee', 'Register new staff', AppColors.primary, () => context.push('/admin/employees/add')),
             _buildActionTile(context, isDark, Iconsax.people5, 'Employee List', 'View & manage all staff', AppColors.accent, () => context.push('/admin/employees')),
             _buildActionTile(context, isDark, Iconsax.document_text, 'Attendance Report', 'Daily & monthly reports', AppColors.info, () => context.push('/admin/attendance-report')),
-            _buildActionTile(context, isDark, Iconsax.scan_barcode, 'QR Code', 'Generate QR for check-in', AppColors.present, () => context.push('/admin/qr-code')),
 
             const SizedBox(height: 40),
           ],
         ),
+      ),
       ),
     );
   }

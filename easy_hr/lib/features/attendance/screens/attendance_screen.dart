@@ -7,11 +7,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/localization/app_strings.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/theme/app_theme.dart';
-import 'qr_scan_screen.dart';
 
 class AttendanceScreen extends ConsumerStatefulWidget {
   const AttendanceScreen({super.key});
@@ -342,7 +340,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
             _buildTimeCards(isDark, mm),
             const SizedBox(height: 20),
             _buildAdminGpsSetup(isDark, mm),
-            _buildQrSection(isDark, mm),
             const SizedBox(height: 20),
             _buildRecentHistory(isDark, mm),
           ],
@@ -778,56 +775,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           ]),
         ),
       ),
-    );
-  }
-
-  // ==================== QR SECTION ====================
-  Widget _buildQrSection(bool isDark, bool mm) {
-    return Container(
-      width: double.infinity, padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : AppColors.lightCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, width: 0.5),
-      ),
-      child: Column(children: [
-        Icon(Iconsax.scan_barcode, size: 36, color: AppColors.primary.withOpacity(0.6)),
-        const SizedBox(height: 10),
-        Text(mm ? 'QR ကုဒ်ဖြင့် တက်ရောက်မှု' : 'QR Code Attendance', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        const SizedBox(height: 4),
-        Text(mm ? 'QR ကုဒ်ဖြင့် အလုပ်ဝင်/ထွက် မှတ်တမ်းတင်ပါ' : 'Scan QR code for check-in/out',
-          style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: OutlinedButton.icon(
-            icon: const Icon(Iconsax.scan, size: 18),
-            label: Text(mm ? 'QR စကန်ဖတ်ရန်' : 'Scan QR Code'),
-            style: OutlinedButton.styleFrom(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const QRAttendanceScanScreen()),
-              );
-              if (!mounted) return;
-              // Try instant update from QR result
-              if (result is Map<String, dynamic>) {
-                final attendance = result['attendance'];
-                final action = result['action']?.toString();
-                if (attendance is Map<String, dynamic>) {
-                  _applyFromAttendanceRecord(attendance, isCheckOut: action == 'check_out');
-                }
-              }
-              // ALWAYS reload from API to ensure sync
-              _loadTodayStatus();
-              _loadHistory();
-            },
-          ),
-        ),
-      ]),
     );
   }
 

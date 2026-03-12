@@ -229,7 +229,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 mainAxisSpacing: 12, crossAxisSpacing: 12,
                 childAspectRatio: 0.85,
                 children: [
-                  _buildQuickAction(context, Iconsax.scan_barcode, s['qr_scan'] ?? 'QR Scan', AppColors.primary, () => context.go('/attendance')),
+                  _buildQuickAction(context, Iconsax.gps, mm ? 'တက်ရောက်မှု' : 'Attendance', AppColors.primary, () => context.go('/attendance')),
                   _buildQuickAction(context, Iconsax.calendar_add, s['leave'] ?? 'Leave', AppColors.onLeave, () => context.go('/leave')),
                   _buildQuickAction(context, Iconsax.message, s['chat'] ?? 'Chat', AppColors.accent, () => context.push('/chat')),
                   _buildQuickAction(context, Iconsax.cpu, mm ? 'AI အကူ' : 'AI Help', AppColors.info, () => context.push('/chatbot')),

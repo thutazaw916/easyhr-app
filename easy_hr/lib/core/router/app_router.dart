@@ -23,7 +23,6 @@ import '../../features/admin/screens/employee_list_screen.dart';
 import '../../features/admin/screens/add_employee_screen.dart';
 import '../../features/admin/screens/edit_employee_screen.dart';
 import '../../features/admin/screens/attendance_report_screen.dart';
-import '../../features/admin/screens/qr_code_screen.dart';
 import '../../features/payroll/screens/payroll_screen.dart';
 import '../../features/payroll/screens/salary_advance_screen.dart';
 import '../../features/payroll/screens/salary_components_screen.dart';
@@ -88,7 +87,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/admin/employees', builder: (context, state) => const EmployeeListScreen()),
       GoRoute(path: '/admin/employees/add', builder: (context, state) => const AddEmployeeScreen()),
       GoRoute(path: '/admin/attendance-report', builder: (context, state) => const AttendanceReportScreen()),
-      GoRoute(path: '/admin/qr-code', builder: (context, state) => const QrCodeScreen()),
       GoRoute(path: '/admin/invite', builder: (context, state) => const InviteEmployeeScreen()),
       GoRoute(path: '/admin/employees/edit', builder: (context, state) {
         final employee = state.extra as Map<String, dynamic>;
