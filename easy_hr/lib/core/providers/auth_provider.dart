@@ -241,7 +241,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<Map<String, dynamic>?> googleSignIn() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final googleUser = await GoogleSignIn(scopes: ['email']).signIn();
+      final gsi = GoogleSignIn(scopes: ['email']);
+      // Disconnect + sign out to force account picker every time
+      try { await gsi.disconnect(); } catch (_) {}
+      try { await gsi.signOut(); } catch (_) {}
+      await fb.FirebaseAuth.instance.signOut();
+      final googleUser = await gsi.signIn();
       if (googleUser == null) {
         state = state.copyWith(isLoading: false);
         return null; // User cancelled
@@ -411,6 +416,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // Logout
   Future<void> logout() async {
     await _api.clearToken();
+    // Clear Google + Firebase sessions so next login shows account picker
+    try { await GoogleSignIn().disconnect(); } catch (_) {}
+    try { await GoogleSignIn().signOut(); } catch (_) {}
+    try { await fb.FirebaseAuth.instance.signOut(); } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_data');
     await prefs.remove('subscription_data');
