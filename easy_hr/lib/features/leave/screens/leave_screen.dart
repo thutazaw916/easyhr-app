@@ -27,6 +27,7 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> with SingleTickerProv
   List<Map<String, dynamic>> _balances = [];
   List<Map<String, dynamic>> _myRequests = [];
   List<Map<String, dynamic>> _pendingApprovals = [];
+  bool _processing = false;
 
   @override
   void initState() {
@@ -289,11 +290,11 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> with SingleTickerProv
           Row(children: [
             Expanded(child: SizedBox(height: 38, child: OutlinedButton.icon(icon: const Icon(Iconsax.close_circle, size: 16), label: Text(mm ? 'ပယ်ချ' : 'Reject', style: const TextStyle(fontSize: 12)),
                 style: OutlinedButton.styleFrom(foregroundColor: AppColors.absent, side: const BorderSide(color: AppColors.absent), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                onPressed: () => _handleReject(req, mm)))),
+                onPressed: _processing ? null : () => _handleReject(req, mm)))),
             const SizedBox(width: 10),
             Expanded(child: SizedBox(height: 38, child: ElevatedButton.icon(icon: const Icon(Iconsax.tick_circle, size: 16), label: Text(mm ? 'ခွင့်ပြု' : 'Approve', style: const TextStyle(fontSize: 12)),
                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.present, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                onPressed: () => _handleApprove(req, mm)))),
+                onPressed: _processing ? null : () => _handleApprove(req, mm)))),
           ]),
         ],
       ]),
@@ -326,6 +327,8 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> with SingleTickerProv
 
   // ==================== API: APPROVE / REJECT ====================
   void _handleApprove(Map<String, dynamic> req, bool mm) async {
+    if (_processing) return;
+    setState(() => _processing = true);
     try {
       final api = ref.read(apiServiceProvider);
       await api.approveLeave(req['id']);
@@ -334,7 +337,13 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> with SingleTickerProv
         _loadData();
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ Error: $e'), backgroundColor: AppColors.absent, behavior: SnackBarBehavior.floating));
+      String errMsg = e.toString();
+      if (e is DioException && e.response?.data is Map) {
+        errMsg = e.response?.data['message'] ?? errMsg;
+      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ $errMsg'), backgroundColor: AppColors.absent, behavior: SnackBarBehavior.floating));
+    } finally {
+      if (mounted) setState(() => _processing = false);
     }
   }
 
@@ -358,7 +367,11 @@ class _LeaveScreenState extends ConsumerState<LeaveScreen> with SingleTickerProv
                 _loadData();
               }
             } catch (e) {
-              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ Error: $e'), behavior: SnackBarBehavior.floating));
+              String errMsg = e.toString();
+              if (e is DioException && e.response?.data is Map) {
+                errMsg = e.response?.data['message'] ?? errMsg;
+              }
+              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ $errMsg'), behavior: SnackBarBehavior.floating));
             }
           },
           child: Text(mm ? 'ပယ်ချမည်' : 'Reject'),
