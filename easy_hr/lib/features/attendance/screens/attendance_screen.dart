@@ -405,7 +405,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
   // ==================== CHECK IN / OUT BUTTONS ====================
   Widget _buildCheckButtons(bool isDark, bool mm) {
-    final bool canIn = _isWithinRadius && !_isCheckedIn && !_gpsLoading && _gpsError == null;
+    final bool canIn = _currentPosition != null && !_isCheckedIn && !_gpsLoading && _gpsError == null;
     final bool canOut = _isCheckedIn && !_isCheckedOut && !_gpsLoading;
 
     return Row(
@@ -417,10 +417,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           label: mm ? 'အလုပ်ဝင်ရန်' : 'Check In',
           subLabel: _isCheckedIn
               ? _checkInTime
-              : !_officeGpsSet
-                  ? (mm ? 'GPS သတ်မှတ်ရန်လို' : 'GPS setup needed')
-                  : !_isWithinRadius
-                      ? (mm ? 'ရုံးနားရောက်မှ ရမည်' : 'Go to office')
+              : _gpsLoading
+                  ? (mm ? 'GPS ရှာနေသည်...' : 'Finding GPS...')
+                  : _currentPosition == null
+                      ? (mm ? 'GPS ဖွင့်ပေးပါ' : 'Enable GPS')
                       : null,
           gradient: const [Color(0xFF22C55E), Color(0xFF16A34A)],
           loading: _isLoading && !_isCheckedIn,

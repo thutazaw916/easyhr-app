@@ -28,21 +28,45 @@ export class AttendanceService {
       throw new BadRequestException('Already checked in today at ' + new Date(existing.check_in_time).toLocaleTimeString());
     }
 
-    // 2. Get employee's branch GPS settings
+    // 2. Get employee's branch GPS settings (auto-assign nearest branch if not set)
     const { data: employee } = await db
       .from('employees')
       .select('branch_id')
       .eq('id', employeeId)
       .single();
 
-    if (!employee?.branch_id) {
-      throw new BadRequestException('No branch assigned. Contact your HR.');
+    let branchId = employee?.branch_id;
+
+    if (!branchId) {
+      // Auto-assign: find nearest company branch with GPS configured
+      const { data: branches } = await db
+        .from('branches')
+        .select('id, latitude, longitude, radius_meters, name')
+        .eq('company_id', companyId)
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null);
+
+      if (!branches || branches.length === 0) {
+        throw new BadRequestException('No branches configured. Admin must set up a branch first.');
+      }
+
+      // Find nearest branch
+      let nearest = branches[0];
+      let minDist = Infinity;
+      for (const b of branches) {
+        const d = this.calculateDistance(data.latitude, data.longitude, Number(b.latitude), Number(b.longitude));
+        if (d < minDist) { minDist = d; nearest = b; }
+      }
+
+      branchId = nearest.id;
+      // Auto-assign branch to employee
+      await db.from('employees').update({ branch_id: branchId }).eq('id', employeeId);
     }
 
     const { data: branch } = await db
       .from('branches')
       .select('latitude, longitude, radius_meters, name')
-      .eq('id', employee.branch_id)
+      .eq('id', branchId)
       .single();
 
     if (!branch?.latitude || !branch?.longitude) {
@@ -81,7 +105,7 @@ export class AttendanceService {
     const attendanceData = {
       employee_id: employeeId,
       company_id: companyId,
-      branch_id: employee.branch_id,
+      branch_id: branchId,
       date: today,
       check_in_time: now.toISOString(),
       check_in_latitude: data.latitude,
