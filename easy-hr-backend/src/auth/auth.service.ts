@@ -40,14 +40,14 @@ export class AuthService {
       .from('platform_settings')
       .select('value')
       .eq('key', 'whitelist_enabled')
-      .single();
+      .maybeSingle();
 
     if (whitelistSetting?.value === 'true') {
       const { data: whitelisted } = await db
         .from('email_whitelist')
         .select('id')
         .eq('email', normalizedEmail)
-        .single();
+        .maybeSingle();
 
       if (!whitelisted) {
         throw new BadRequestException(
@@ -61,7 +61,7 @@ export class AuthService {
       .from('companies')
       .select('id, verified')
       .eq('email', normalizedEmail)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       if (existing.verified) {
@@ -186,7 +186,7 @@ export class AuthService {
       .select('id')
       .eq('company_id', company.id)
       .eq('role', 'owner')
-      .single();
+      .maybeSingle();
 
     // Hash password
     const hashedPassword = await bcrypt.hash(dto.password, 12);
@@ -275,7 +275,7 @@ export class AuthService {
       .from('auth_credentials')
       .select('*, employee:employee_id(*)')
       .eq('email', normalizedEmail)
-      .single();
+      .maybeSingle();
 
     if (!cred) {
       throw new UnauthorizedException('Invalid email or password');
@@ -343,7 +343,7 @@ export class AuthService {
       .select('*')
       .eq('phone', dto.phone)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!employee) {
       throw new BadRequestException('Phone number not registered. Please contact your HR.');
@@ -384,7 +384,7 @@ export class AuthService {
       .eq('phone', dto.phone)
       .eq('otp_code', dto.otp)
       .eq('is_used', false)
-      .single();
+      .maybeSingle();
 
     if (!otpRecord) {
       throw new BadRequestException('Invalid OTP');
@@ -407,7 +407,7 @@ export class AuthService {
       .select('*')
       .eq('phone', dto.phone)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!employee) {
       throw new UnauthorizedException('Employee not found');
@@ -481,7 +481,7 @@ export class AuthService {
       .select('*')
       .eq('phone', normalizedPhone)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!employee) {
       // Try with original phone format
@@ -490,7 +490,7 @@ export class AuthService {
         .select('*')
         .eq('phone', dto.phone.trim())
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (!emp2) {
         throw new BadRequestException('Phone number not registered. Please contact your HR.');
@@ -573,7 +573,7 @@ export class AuthService {
       .select('*')
       .eq('email', email)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (employee) {
       // Existing user — login normally
@@ -585,7 +585,7 @@ export class AuthService {
       .from('companies')
       .select('*')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
     if (company) {
       // Company exists, find the owner employee
@@ -595,7 +595,7 @@ export class AuthService {
         .eq('company_id', company.id)
         .eq('role', 'owner')
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (ownerEmp) {
         return this._loginEmployee(ownerEmp);
@@ -640,7 +640,7 @@ export class AuthService {
       .select('*')
       .eq('email', email)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (employee) {
       return this._loginEmployee(employee);
@@ -651,7 +651,7 @@ export class AuthService {
       .from('companies')
       .select('*')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
     if (company) {
       const { data: ownerEmp } = await db
@@ -660,7 +660,7 @@ export class AuthService {
         .eq('company_id', company.id)
         .eq('role', 'owner')
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (ownerEmp) {
         return this._loginEmployee(ownerEmp);
@@ -701,7 +701,7 @@ export class AuthService {
       .from('companies')
       .select('id')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       throw new ConflictException('A company with this email already exists');
@@ -807,7 +807,7 @@ export class AuthService {
       .eq('invite_code', dto.invite_code.toUpperCase())
       .eq('phone', dto.phone)
       .eq('status', 'pending')
-      .single();
+      .maybeSingle();
 
     if (!invite) {
       throw new BadRequestException('Invalid or expired invitation code');
@@ -825,7 +825,7 @@ export class AuthService {
       .select('id')
       .eq('company_id', invite.company_id)
       .eq('phone', dto.phone)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       throw new ConflictException('You are already registered in this company');

@@ -29,6 +29,33 @@ export class AnnouncementService {
       .select(`*, creator:created_by(id, first_name, last_name)`)
       .single();
     if (error) throw error;
+
+    // Create notifications for all employees in the company
+    try {
+      const { data: employees } = await db
+        .from('employees')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+        .neq('id', creatorId);
+
+      if (employees && employees.length > 0) {
+        const notifications = employees.map((emp: any) => ({
+          employee_id: emp.id,
+          company_id: companyId,
+          type: 'announcement',
+          title: data.priority === 'high' ? `⚠️ ${data.title}` : `📢 ${data.title}`,
+          body: data.content.substring(0, 200),
+          data: JSON.stringify({ announcement_id: announcement.id }),
+          is_read: false,
+        }));
+        await db.from('notifications').insert(notifications);
+      }
+    } catch (notifErr) {
+      // Don't fail the announcement if notifications fail
+      console.error('Failed to create notifications:', notifErr);
+    }
+
     return announcement;
   }
 
