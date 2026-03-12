@@ -129,7 +129,7 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(mm ? '* ဝန်ထမ်းသည် ဤဖုန်းနံပါတ်ဖြင့် OTP login ဝင်ရောက်ပါမည်' : '* Employee will use this phone for OTP login',
+                      Text(mm ? '* ဝန်ထမ်းသည် ဤဖုန်းနံပါတ်နှင့် PIN ဖြင့် login ဝင်ရောက်ပါမည်' : '* Employee will use this phone + PIN to login',
                         style: const TextStyle(fontSize: 11, color: AppColors.info, fontStyle: FontStyle.italic)),
                       const SizedBox(height: 2),
                       Text(mm ? '  ပုံစံ: 09xxx, +959xxx, 01xxx (Yangon), 02xxx (Mandalay)' : '  Formats: 09xxx, +959xxx, 01xxx, 02xxx',
@@ -335,12 +335,68 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
       if (_salaryC.text.isNotEmpty) data['base_salary'] = _salaryC.text.trim();
       if (_nrcC.text.isNotEmpty) data['nrc_number'] = _nrcC.text.trim();
 
-      await api.addEmployee(data);
+      final result = await api.addEmployee(data);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(mm ? '✅ ဝန်ထမ်းအသစ်ထည့်ပြီးပါပြီ!' : '✅ Employee added!'), backgroundColor: AppColors.present, behavior: SnackBarBehavior.floating),
+        final pin = result['login_pin'] ?? result['employee']?['login_pin'] ?? '';
+        final empName = _nameC.text.trim();
+        final empPhone = _phoneC.text.trim();
+
+        // Show PIN dialog so admin can share with employee
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dCtx) => AlertDialog(
+            title: Row(children: [
+              const Icon(Iconsax.tick_circle, color: AppColors.present, size: 24),
+              const SizedBox(width: 8),
+              Text(mm ? 'ဝန်ထမ်းထည့်ပြီးပါပြီ!' : 'Employee Added!'),
+            ]),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(mm ? '$empName အတွက် Login PIN ဖြစ်ပါသည်' : 'Login PIN for $empName',
+                  style: const TextStyle(fontSize: 14)),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(children: [
+                    Text(pin.toString(), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 8, color: AppColors.primary)),
+                    const SizedBox(height: 4),
+                    Text('PIN', style: TextStyle(fontSize: 12, color: AppColors.primary.withValues(alpha: 0.6))),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(children: [
+                    const Icon(Iconsax.info_circle, size: 16, color: AppColors.warning),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(
+                      mm ? 'ဤ PIN ကို ဝန်ထမ်းအား ပြောပေးပါ။\nPhone: $empPhone' : 'Share this PIN with the employee.\nPhone: $empPhone',
+                      style: const TextStyle(fontSize: 12, height: 1.4),
+                    )),
+                  ]),
+                ),
+              ],
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(dCtx),
+                child: Text(mm ? 'အိုကေ' : 'OK, Got it'),
+              ),
+            ],
+          ),
         );
-        Navigator.pop(context, true);
+        if (mounted) Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {

@@ -86,6 +86,9 @@ export class EmployeeService {
     // Use join_date (the actual DB column name)
     const joinDate = data.join_date || data.hire_date;
 
+    // Auto-generate 6-digit login PIN
+    const loginPin = String(Math.floor(100000 + Math.random() * 900000));
+
     // Build insert data — only include non-null fields
     const insertData: Record<string, any> = {
       company_id: companyId,
@@ -93,6 +96,7 @@ export class EmployeeService {
       phone: data.phone,
       role: data.role || 'employee',
       employee_code: employeeCode,
+      login_pin: loginPin,
       is_active: true,
     };
     if (data.last_name) insertData.last_name = data.last_name;
@@ -115,6 +119,7 @@ export class EmployeeService {
       return {
         message: 'Employee added successfully',
         employee,
+        login_pin: loginPin,
       };
     } catch (err: any) {
       console.error('Employee create error:', err);
