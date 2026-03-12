@@ -234,7 +234,7 @@ export class AttendanceService {
   }
 
   // ============================================
-  // QR CODE CHECK-IN
+  // QR CODE CHECK-IN / CHECK-OUT (auto-toggle)
   // ============================================
   async qrCheckIn(employeeId: string, companyId: string, data: {
     qr_code: string;
@@ -268,28 +268,78 @@ export class AttendanceService {
       await db.from('employees').update({ branch_id: branch.id }).eq('id', employeeId);
     }
 
-    // 3. Proceed with check-in using branch location (skip GPS distance check for QR)
     const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
 
+    // 3. Check today's attendance to decide: check-in or check-out
     const { data: existing } = await db
       .from('attendance')
-      .select('id, check_in_time')
+      .select('*')
       .eq('employee_id', employeeId)
       .eq('date', today)
       .single();
 
-    if (existing?.check_in_time) {
-      throw new BadRequestException('Already checked in today at ' + new Date(existing.check_in_time).toLocaleTimeString());
+    // --- CASE A: Already checked in + already checked out ---
+    if (existing?.check_in_time && existing?.check_out_time) {
+      throw new BadRequestException('Already checked in and out today. See you tomorrow!');
     }
 
-    // Check if late
+    // --- CASE B: Already checked in, not checked out → do CHECK-OUT ---
+    if (existing?.check_in_time && !existing?.check_out_time) {
+      const checkIn = new Date(existing.check_in_time);
+      const totalHours = (now.getTime() - checkIn.getTime()) / (1000 * 60 * 60);
+
+      const { data: company } = await db
+        .from('companies')
+        .select('work_start_time, work_end_time')
+        .eq('id', companyId)
+        .single();
+
+      const [endHour, endMin] = (company?.work_end_time || '17:00:00').split(':').map(Number);
+      const workEnd = new Date(now);
+      workEnd.setHours(endHour, endMin, 0, 0);
+
+      const overtimeHours = now > workEnd
+        ? (now.getTime() - workEnd.getTime()) / (1000 * 60 * 60)
+        : 0;
+
+      const isEarlyLeave = now < workEnd;
+
+      const { data: updated, error } = await db
+        .from('attendance')
+        .update({
+          check_out_time: now.toISOString(),
+          check_out_latitude: data.latitude || Number(branch.latitude),
+          check_out_longitude: data.longitude || Number(branch.longitude),
+          check_out_method: 'qr',
+          total_hours: Math.round(totalHours * 100) / 100,
+          overtime_hours: Math.round(overtimeHours * 100) / 100,
+          is_early_leave: isEarlyLeave,
+        })
+        .eq('id', existing.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return {
+        action: 'check_out',
+        message: `Checked out via QR at ${branch.name}! Good job today!`,
+        attendance: updated,
+        branch_name: branch.name,
+        total_hours: Math.round(totalHours * 100) / 100,
+        overtime_hours: Math.round(overtimeHours * 100) / 100,
+        is_early_leave: isEarlyLeave,
+      };
+    }
+
+    // --- CASE C: Not checked in yet → do CHECK-IN ---
     const { data: company } = await db
       .from('companies')
       .select('work_start_time')
       .eq('id', companyId)
       .single();
 
-    const now = new Date();
     const [startHour, startMin] = (company?.work_start_time || '09:00:00').split(':').map(Number);
     const workStart = new Date(now);
     workStart.setHours(startHour, startMin, 0, 0);
@@ -327,6 +377,7 @@ export class AttendanceService {
     }
 
     return {
+      action: 'check_in',
       message: isLate
         ? `Checked in via QR (${lateMinutes} minutes late)`
         : `Checked in via QR at ${branch.name}! Have a great day!`,

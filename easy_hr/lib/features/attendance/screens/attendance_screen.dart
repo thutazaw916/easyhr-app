@@ -783,13 +783,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 MaterialPageRoute(builder: (_) => const QRAttendanceScanScreen()),
               );
               if (mounted && result == true) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(mm ? 'QR ဖြင့် check-in လုပ်ပြီးသား ဖြစ်နိုင်ပါသည်' : 'QR check-in may already be recorded.'),
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: AppColors.present,
-                  ),
-                );
+                _loadTodayStatus();
+                _loadHistory();
               }
             },
           ),

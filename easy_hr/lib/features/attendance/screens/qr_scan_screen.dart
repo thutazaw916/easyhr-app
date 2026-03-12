@@ -43,12 +43,14 @@ class _QRAttendanceScanScreenState extends ConsumerState<QRAttendanceScanScreen>
 
     try {
       final api = ref.read(apiServiceProvider);
-      await api.qrCheckIn(raw);
+      final result = await api.qrCheckIn(raw);
 
       if (!mounted) return;
+      final action = result['action']?.toString() ?? 'check_in';
+      final message = result['message']?.toString() ?? (action == 'check_out' ? 'Checked out!' : 'Checked in!');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(mm ? '✅ QR ဖြင့် Check-in သတ်မှတ်ပြီးပါပြီ' : '✅ QR check-in successful'),
+          content: Text('✅ $message'),
           backgroundColor: AppColors.present,
           behavior: SnackBarBehavior.floating,
         ),
