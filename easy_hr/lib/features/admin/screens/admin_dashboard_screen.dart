@@ -5,6 +5,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/api_service.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -14,13 +15,57 @@ class AdminDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
-  final _todayStats = {'present': 42, 'absent': 3, 'late': 5, 'on_leave': 8, 'total': 58};
-  final _monthlyStats = {'total_working_days': 22, 'avg_attendance': 91.5, 'total_ot_hours': 156, 'pending_leaves': 4};
+  int _totalEmployees = 0;
+  int _present = 0;
+  int _absent = 0;
+  int _late = 0;
+  int _onLeave = 0;
+  double _totalOtHours = 0;
+  bool _loading = true;
+  List<Map<String, dynamic>> _notCheckedIn = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final report = await api.getDailyReport();
+      debugPrint('[AdminDash] report: $report');
+      if (mounted) {
+        final summary = report['summary'] ?? {};
+        setState(() {
+          _totalEmployees = summary['total_employees'] ?? 0;
+          _present = summary['present'] ?? 0;
+          _absent = summary['absent'] ?? 0;
+          _late = summary['late'] ?? 0;
+          _onLeave = summary['on_leave'] ?? 0;
+          _notCheckedIn = List<Map<String, dynamic>>.from(report['not_checked_in'] ?? []);
+          _loading = false;
+        });
+      }
+      // Load monthly OT
+      final history = await api.getMyAttendanceHistory();
+      if (mounted && history['summary'] != null) {
+        setState(() {
+          _totalOtHours = (history['summary']['total_overtime_hours'] ?? 0).toDouble();
+        });
+      }
+    } catch (e) {
+      debugPrint('[AdminDash] error: $e');
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = ref.watch(authProvider).user;
+    final int total = _totalEmployees > 0 ? _totalEmployees : 1;
+    final double avgRate = total > 0 ? ((_present + _late) / total * 100) : 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -61,11 +106,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      _buildHeaderStat('Employees', '${_todayStats['total']}', Iconsax.people5),
+                      _buildHeaderStat('Employees', '$_totalEmployees', Iconsax.people5),
                       const SizedBox(width: 24),
-                      _buildHeaderStat('Avg Rate', '${_monthlyStats['avg_attendance']}%', Iconsax.chart_square),
+                      _buildHeaderStat('Avg Rate', '${avgRate.round()}%', Iconsax.chart_square),
                       const SizedBox(width: 24),
-                      _buildHeaderStat('OT Hours', '${_monthlyStats['total_ot_hours']}', Iconsax.timer_1),
+                      _buildHeaderStat('OT Hours', '${_totalOtHours.round()}', Iconsax.timer_1),
                     ],
                   ),
                 ],
@@ -77,79 +122,75 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             // Today's Attendance
             Text("Today's Attendance", style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),
-            Row(children: [
-              _buildStatCard(context, isDark, 'Present', '${_todayStats['present']}', AppColors.present, Iconsax.tick_circle, '${((_todayStats['present']! / _todayStats['total']!) * 100).round()}%'),
-              const SizedBox(width: 10),
-              _buildStatCard(context, isDark, 'Absent', '${_todayStats['absent']}', AppColors.absent, Iconsax.close_circle, '${((_todayStats['absent']! / _todayStats['total']!) * 100).round()}%'),
-            ]),
-            const SizedBox(height: 10),
-            Row(children: [
-              _buildStatCard(context, isDark, 'Late', '${_todayStats['late']}', AppColors.late_, Iconsax.clock, '${((_todayStats['late']! / _todayStats['total']!) * 100).round()}%'),
-              const SizedBox(width: 10),
-              _buildStatCard(context, isDark, 'On Leave', '${_todayStats['on_leave']}', AppColors.onLeave, Iconsax.calendar_1, '${((_todayStats['on_leave']! / _todayStats['total']!) * 100).round()}%'),
-            ]),
+            if (_loading)
+              const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+            else ...[
+              Row(children: [
+                _buildStatCard(context, isDark, 'Present', '$_present', AppColors.present, Iconsax.tick_circle, '${total > 0 ? (_present / total * 100).round() : 0}%'),
+                const SizedBox(width: 10),
+                _buildStatCard(context, isDark, 'Absent', '$_absent', AppColors.absent, Iconsax.close_circle, '${total > 0 ? (_absent / total * 100).round() : 0}%'),
+              ]),
+              const SizedBox(height: 10),
+              Row(children: [
+                _buildStatCard(context, isDark, 'Late', '$_late', AppColors.late_, Iconsax.clock, '${total > 0 ? (_late / total * 100).round() : 0}%'),
+                const SizedBox(width: 10),
+                _buildStatCard(context, isDark, 'On Leave', '$_onLeave', AppColors.onLeave, Iconsax.calendar_1, '${total > 0 ? (_onLeave / total * 100).round() : 0}%'),
+              ]),
+            ],
 
             const SizedBox(height: 20),
 
-            // Weekly Chart
-            Text('Weekly Attendance', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkCard : AppColors.lightCard,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, width: 0.5),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
+            // Not Checked In Today
+            if (_notCheckedIn.isNotEmpty) ...[
+              Text('Not Checked In Yet (${_notCheckedIn.length})', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              ..._notCheckedIn.map((emp) {
+                final fn = emp['first_name'] ?? '';
+                final ln = emp['last_name'] ?? '';
+                final name = '$fn $ln'.trim();
+                final code = emp['employee_code'] ?? '';
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.absent.withOpacity(0.3)),
+                  ),
+                  child: Row(
                     children: [
-                      _buildBar(context, 'Mon', 0.92, AppColors.present),
-                      _buildBar(context, 'Tue', 0.88, AppColors.present),
-                      _buildBar(context, 'Wed', 0.95, AppColors.present),
-                      _buildBar(context, 'Thu', 0.85, AppColors.warning),
-                      _buildBar(context, 'Fri', 0.78, AppColors.warning),
-                      _buildBar(context, 'Sat', 0.0, AppColors.lightDivider),
-                      _buildBar(context, 'Sun', 0.0, AppColors.lightDivider),
+                      Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(color: AppColors.absent.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                        child: const Icon(Iconsax.close_circle, color: AppColors.absent, size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name.isNotEmpty ? name : 'Employee', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                          if (code.isNotEmpty) Text(code, style: Theme.of(context).textTheme.bodySmall),
+                        ],
+                      )),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: AppColors.absent.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                        child: const Text('ABSENT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.absent)),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildLegend(AppColors.present, 'Good (>85%)'),
-                      const SizedBox(width: 16),
-                      _buildLegend(AppColors.warning, 'Warning (<85%)'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+                );
+              }),
+              const SizedBox(height: 20),
+            ],
 
-            const SizedBox(height: 20),
-
-            // Quick Admin Actions — only 3 items
+            // Quick Admin Actions
             Text('Admin Actions', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),
             _buildActionTile(context, isDark, Iconsax.user_add, 'Add Employee', 'Register new staff', AppColors.primary, () => context.push('/admin/employees/add')),
             _buildActionTile(context, isDark, Iconsax.people5, 'Employee List', 'View & manage all staff', AppColors.accent, () => context.push('/admin/employees')),
             _buildActionTile(context, isDark, Iconsax.document_text, 'Attendance Report', 'Daily & monthly reports', AppColors.info, () => context.push('/admin/attendance-report')),
             _buildActionTile(context, isDark, Iconsax.scan_barcode, 'QR Code', 'Generate QR for check-in', AppColors.present, () => context.push('/admin/qr-code')),
-
-            const SizedBox(height: 24),
-
-            // Department Summary
-            Text('Department Summary', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
-            _buildDeptRow(context, isDark, 'Engineering', 15, 14, 1),
-            _buildDeptRow(context, isDark, 'Sales', 12, 10, 2),
-            _buildDeptRow(context, isDark, 'HR', 5, 5, 0),
-            _buildDeptRow(context, isDark, 'Marketing', 8, 7, 1),
-            _buildDeptRow(context, isDark, 'Operations', 18, 16, 2),
 
             const SizedBox(height: 40),
           ],
@@ -203,29 +244,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildBar(BuildContext context, String day, double value, Color color) {
-    return Column(
-      children: [
-        Text('${(value * 100).round()}%', style: TextStyle(fontSize: 10, color: value > 0 ? color : Colors.transparent)),
-        const SizedBox(height: 4),
-        Container(
-          width: 32, height: value > 0 ? 100 * value : 4,
-          decoration: BoxDecoration(color: color.withOpacity(value > 0 ? 0.8 : 0.2), borderRadius: BorderRadius.circular(6)),
-        ),
-        const SizedBox(height: 6),
-        Text(day, style: Theme.of(context).textTheme.bodySmall),
-      ],
-    );
-  }
-
-  Widget _buildLegend(Color color, String label) {
-    return Row(children: [
-      Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
-      const SizedBox(width: 4),
-      Text(label, style: const TextStyle(fontSize: 11)),
-    ]);
-  }
-
   Widget _buildActionTile(BuildContext context, bool isDark, IconData icon, String title, String subtitle, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -259,37 +277,4 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildDeptRow(BuildContext context, bool isDark, String name, int total, int present, int absent) {
-    final rate = total > 0 ? (present / total * 100) : 0.0;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCard : AppColors.lightCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.lightBorder, width: 0.5),
-      ),
-      child: Row(
-        children: [
-          Expanded(child: Text(name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 14))),
-          Text('$present/$total', style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 80,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: rate / 100, minHeight: 6,
-                backgroundColor: AppColors.absent.withOpacity(0.2),
-                color: rate >= 90 ? AppColors.present : rate >= 80 ? AppColors.warning : AppColors.absent,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text('${rate.round()}%', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
-            color: rate >= 90 ? AppColors.present : rate >= 80 ? AppColors.warning : AppColors.absent)),
-        ],
-      ),
-    );
-  }
 }
