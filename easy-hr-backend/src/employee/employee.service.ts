@@ -248,6 +248,9 @@ export class EmployeeService {
     return this.updateEmployee(companyId, employeeId, {
       is_active: false,
       resignation_date: new Date().toISOString().split('T')[0],
+      device_id: null,
+      device_name: null,
+      login_pin: null,
     });
   }
 

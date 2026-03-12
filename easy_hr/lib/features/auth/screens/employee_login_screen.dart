@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/providers/auth_provider.dart';
@@ -20,16 +21,30 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
   bool _isLogging = false;
   bool _obscurePin = true;
 
+  static const _storage = FlutterSecureStorage();
+  static const _deviceIdKey = 'easyhr_device_id';
+
   Future<String> _getDeviceId() async {
+    // Check if we already have a persisted device ID
+    final existing = await _storage.read(key: _deviceIdKey);
+    if (existing != null && existing.isNotEmpty) return existing;
+
+    // Generate from hardware info + timestamp for uniqueness
     final deviceInfo = DeviceInfoPlugin();
+    String id;
     if (Platform.isAndroid) {
       final info = await deviceInfo.androidInfo;
-      return info.id;
+      id = info.id;
     } else if (Platform.isIOS) {
       final info = await deviceInfo.iosInfo;
-      return info.identifierForVendor ?? 'ios-unknown';
+      id = info.identifierForVendor ?? 'ios-${DateTime.now().millisecondsSinceEpoch}';
+    } else {
+      id = 'device-${DateTime.now().millisecondsSinceEpoch}';
     }
-    return 'unknown-device';
+
+    // Persist in secure storage (Keychain on iOS, survives reinstall)
+    await _storage.write(key: _deviceIdKey, value: id);
+    return id;
   }
 
   Future<String> _getDeviceName() async {
