@@ -41,12 +41,12 @@ export class AnnouncementService {
 
       if (employees && employees.length > 0) {
         const notifications = employees.map((emp: any) => ({
-          employee_id: emp.id,
+          recipient_id: emp.id,
           company_id: companyId,
           type: 'announcement',
           title: data.priority === 'high' ? `⚠️ ${data.title}` : `📢 ${data.title}`,
           body: data.content.substring(0, 200),
-          data: JSON.stringify({ announcement_id: announcement.id }),
+          data: { announcement_id: announcement.id },
           is_read: false,
         }));
         await db.from('notifications').insert(notifications);
