@@ -79,26 +79,56 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         lat: _currentPosition?.latitude,
         lng: _currentPosition?.longitude,
       );
+      debugPrint('[Attendance] status response: $status');
       if (mounted) {
-        setState(() {
-          _isCheckedIn = status['checked_in'] == true;
-          _isCheckedOut = status['checked_out'] == true;
-          if (status['check_in_time'] != null) {
-            _checkInDateTime = DateTime.tryParse(status['check_in_time']);
-            _checkInTime = _checkInDateTime != null ? DateFormat('h:mm a').format(_checkInDateTime!.toLocal()) : null;
-          }
-          if (status['check_out_time'] != null) {
-            final co = DateTime.tryParse(status['check_out_time']);
-            _checkOutTime = co != null ? DateFormat('h:mm a').format(co.toLocal()) : null;
-          }
-          _totalHours = (status['total_hours'] ?? 0).toDouble();
-          if (_isCheckedIn && !_isCheckedOut && _checkInDateTime != null) {
-            _totalHours = DateTime.now().difference(_checkInDateTime!).inMinutes / 60.0;
-            _startWorkTimer();
-          }
-        });
+        _applyStatus(status);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[Attendance] _loadTodayStatus error: $e');
+    }
+  }
+
+  void _applyStatus(Map<String, dynamic> status) {
+    setState(() {
+      _isCheckedIn = status['checked_in'] == true;
+      _isCheckedOut = status['checked_out'] == true;
+      if (status['check_in_time'] != null) {
+        _checkInDateTime = DateTime.tryParse(status['check_in_time'].toString());
+        _checkInTime = _checkInDateTime != null ? DateFormat('h:mm a').format(_checkInDateTime!.toLocal()) : null;
+      }
+      if (status['check_out_time'] != null) {
+        final co = DateTime.tryParse(status['check_out_time'].toString());
+        _checkOutTime = co != null ? DateFormat('h:mm a').format(co.toLocal()) : null;
+      }
+      _totalHours = (status['total_hours'] ?? 0).toDouble();
+      if (_isCheckedIn && !_isCheckedOut && _checkInDateTime != null) {
+        _totalHours = DateTime.now().difference(_checkInDateTime!).inMinutes / 60.0;
+        _startWorkTimer();
+      }
+    });
+  }
+
+  void _applyFromAttendanceRecord(Map<String, dynamic> attendance, {required bool isCheckOut}) {
+    setState(() {
+      _isCheckedIn = true;
+      if (attendance['check_in_time'] != null) {
+        _checkInDateTime = DateTime.tryParse(attendance['check_in_time'].toString());
+        _checkInTime = _checkInDateTime != null ? DateFormat('h:mm a').format(_checkInDateTime!.toLocal()) : null;
+      }
+      if (isCheckOut) {
+        _isCheckedOut = true;
+        _workTimer?.cancel();
+        if (attendance['check_out_time'] != null) {
+          final co = DateTime.tryParse(attendance['check_out_time'].toString());
+          _checkOutTime = co != null ? DateFormat('h:mm a').format(co.toLocal()) : null;
+        }
+        _totalHours = (attendance['total_hours'] ?? _totalHours).toDouble();
+      } else {
+        _isCheckedOut = false;
+        _totalHours = _checkInDateTime != null ? DateTime.now().difference(_checkInDateTime!).inMinutes / 60.0 : 0;
+        _startWorkTimer();
+      }
+    });
   }
 
   Future<void> _loadHistory() async {
@@ -221,23 +251,21 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     try {
       final api = ref.read(apiServiceProvider);
       final result = await api.checkIn(_currentPosition!.latitude, _currentPosition!.longitude);
+      debugPrint('[Attendance] checkIn result: $result');
       if (mounted) {
         final msg = result['message'] ?? 'Checked in!';
-        _checkInDateTime = DateTime.tryParse(result['attendance']?['check_in_time'] ?? '');
-        setState(() {
-          _isCheckedIn = true;
-          _isCheckedOut = false;
-          _checkInTime = _checkInDateTime != null ? DateFormat('h:mm a').format(_checkInDateTime!.toLocal()) : TimeOfDay.now().format(context);
-          _totalHours = 0;
-          _isLoading = false;
-        });
-        _startWorkTimer();
+        final attendance = result['attendance'];
+        if (attendance is Map<String, dynamic>) {
+          _applyFromAttendanceRecord(attendance, isCheckOut: false);
+        }
+        setState(() => _isLoading = false);
         _loadHistory();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('✅ $msg'), backgroundColor: AppColors.present, behavior: SnackBarBehavior.floating,
         ));
       }
     } catch (e) {
+      debugPrint('[Attendance] checkIn error: $e');
       if (mounted) {
         setState(() => _isLoading = false);
         String errMsg = e.toString();
@@ -257,21 +285,21 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     try {
       final api = ref.read(apiServiceProvider);
       final result = await api.checkOut(_currentPosition!.latitude, _currentPosition!.longitude);
+      debugPrint('[Attendance] checkOut result: $result');
       if (mounted) {
         final msg = result['message'] ?? 'Checked out!';
-        _workTimer?.cancel();
-        setState(() {
-          _isCheckedOut = true;
-          _checkOutTime = DateFormat('h:mm a').format(DateTime.now());
-          _totalHours = (result['total_hours'] ?? _totalHours).toDouble();
-          _isLoading = false;
-        });
+        final attendance = result['attendance'];
+        if (attendance is Map<String, dynamic>) {
+          _applyFromAttendanceRecord(attendance, isCheckOut: true);
+        }
+        setState(() => _isLoading = false);
         _loadHistory();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('✅ $msg'), backgroundColor: AppColors.present, behavior: SnackBarBehavior.floating,
         ));
       }
     } catch (e) {
+      debugPrint('[Attendance] checkOut error: $e');
       if (mounted) {
         setState(() => _isLoading = false);
         String errMsg = e.toString();
@@ -780,11 +808,20 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () async {
-              final result = await Navigator.push<bool>(
+              final result = await Navigator.push<dynamic>(
                 context,
                 MaterialPageRoute(builder: (_) => const QRAttendanceScanScreen()),
               );
-              if (mounted && result == true) {
+              if (mounted && result != null && result is Map<String, dynamic>) {
+                // Apply immediately from QR result
+                final attendance = result['attendance'];
+                final action = result['action']?.toString();
+                if (attendance is Map<String, dynamic>) {
+                  _applyFromAttendanceRecord(attendance, isCheckOut: action == 'check_out');
+                }
+                _loadHistory();
+              } else if (mounted && result != null) {
+                // Fallback: reload from API
                 _loadTodayStatus();
                 _loadHistory();
               }

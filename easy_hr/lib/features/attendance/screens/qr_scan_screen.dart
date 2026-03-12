@@ -55,7 +55,7 @@ class _QRAttendanceScanScreenState extends ConsumerState<QRAttendanceScanScreen>
           behavior: SnackBarBehavior.floating,
         ),
       );
-      Navigator.pop(context, true);
+      Navigator.pop(context, result);
     } catch (e) {
       String msg;
       if (e is DioException) {

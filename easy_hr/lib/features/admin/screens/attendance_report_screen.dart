@@ -241,10 +241,29 @@ class _AttendanceReportScreenState extends ConsumerState<AttendanceReportScreen>
   }
 
   Widget _buildRecordCard(bool isDark, Map<String, dynamic> record) {
-    final name = record['employee_name'] ?? 'Unknown';
+    // Parse employee name from nested Supabase join
+    final emp = record['employee'];
+    String name = 'Unknown';
+    if (emp is Map<String, dynamic>) {
+      final fn = emp['first_name'] ?? '';
+      final ln = emp['last_name'] ?? '';
+      name = '$fn $ln'.trim();
+      if (name.isEmpty) name = emp['name_mm'] ?? emp['employee_code'] ?? 'Unknown';
+    }
+
     final status = record['status'] ?? 'absent';
-    final checkIn = record['check_in_time'];
-    final checkOut = record['check_out_time'];
+
+    // Format check-in/out times
+    String? ciFormatted;
+    String? coFormatted;
+    if (record['check_in_time'] != null) {
+      final ci = DateTime.tryParse(record['check_in_time'].toString());
+      ciFormatted = ci != null ? DateFormat('h:mm a').format(ci.toLocal()) : null;
+    }
+    if (record['check_out_time'] != null) {
+      final co = DateTime.tryParse(record['check_out_time'].toString());
+      coFormatted = co != null ? DateFormat('h:mm a').format(co.toLocal()) : null;
+    }
 
     Color statusColor;
     IconData statusIcon;
@@ -254,6 +273,10 @@ class _AttendanceReportScreenState extends ConsumerState<AttendanceReportScreen>
       case 'on_leave': statusColor = AppColors.onLeave; statusIcon = Iconsax.calendar_1; break;
       default: statusColor = AppColors.absent; statusIcon = Iconsax.close_circle;
     }
+
+    // Format total hours
+    final totalH = (record['total_hours'] ?? 0).toDouble();
+    final hoursStr = totalH > 0 ? '${totalH.floor()}h ${((totalH - totalH.floor()) * 60).round()}m' : '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
@@ -276,7 +299,10 @@ class _AttendanceReportScreenState extends ConsumerState<AttendanceReportScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                if (checkIn != null) Text('In: $checkIn ${checkOut != null ? '• Out: $checkOut' : ''}', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11)),
+                if (ciFormatted != null) Text(
+                  'In: $ciFormatted${coFormatted != null ? ' • Out: $coFormatted' : ''}${hoursStr.isNotEmpty ? ' • $hoursStr' : ''}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
+                ),
               ],
             ),
           ),
